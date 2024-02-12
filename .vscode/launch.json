@@ -1,0 +1,83 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in library 'plastic_io'",
+      "cargo": {
+        "args": [
+          "test",
+          "--no-run",
+          "--lib",
+          "--package=plastic_io"
+        ],
+        "filter": {
+          "name": "plastic_io",
+          "kind": "lib"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug executable 'plastic_io'",
+      "cargo": {
+        "args": [
+          "build",
+          "--bin=plastic_io",
+          "--package=plastic_io"
+        ],
+        "filter": {
+          "name": "plastic_io",
+          "kind": "bin"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in executable 'plastic_io'",
+      "cargo": {
+        "args": [
+          "test",
+          "--no-run",
+          "--bin=plastic_io",
+          "--package=plastic_io"
+        ],
+        "filter": {
+          "name": "plastic_io",
+          "kind": "bin"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug integration test 'graph_tests'",
+      "cargo": {
+        "args": [
+          "test",
+          "--no-run",
+          "--test=graph_tests",
+          "--package=plastic_io"
+        ],
+        "filter": {
+          "name": "graph_tests",
+          "kind": "test"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

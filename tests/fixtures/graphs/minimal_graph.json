@@ -1,0 +1,17 @@
+{
+  "id": "graph2",
+  "url": "",
+  "nodes": [],
+  "properties": {
+    "name": "foo",
+    "description": "",
+    "created_by": "",
+    "created_on": "2024-02-11T00:47:33Z",
+    "last_update": "2024-02-11T00:47:33Z",
+    "exportable": true,
+    "height": 0,
+    "width": 0,
+    "icon": ""
+  },
+  "version": "0"
+}

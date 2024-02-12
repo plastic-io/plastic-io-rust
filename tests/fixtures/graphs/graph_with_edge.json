@@ -1,0 +1,61 @@
+{
+  "id": "graph1",
+  "url": "graph1",
+  "nodes": [
+    {
+      "id": "node1",
+      "linked_graph": null,
+      "linked_node": null,
+      "edges": [
+        {
+          "field": "field1",
+          "connectors": [
+            {
+              "id": "connector1",
+              "node_id": "node2",
+              "field": "field2",
+              "graph_id": "graph1",
+              "version": "0"
+            }
+          ]
+        }
+      ],
+      "version": "0",
+      "graph_id": "graph1",
+      "url": "node1",
+      "data": "",
+      "properties": {},
+      "template": {
+        "set": "edges.field1 = Date.now();"
+      }
+    },
+    {
+      "id": "node2",
+      "linked_graph": null,
+      "linked_node": null,
+      "edges": [],
+      "version": "0",
+      "graph_id": "graph1",
+      "url": "node1",
+      "data": "",
+      "properties": {},
+      "template": {
+        "set": "'bar'"
+      }
+    }
+  ],
+  "properties": {
+    "name": "foo",
+    "description": "",
+    "created_by": "",
+    "created_on": "2024-02-11T00:47:33Z",
+    "last_update": "2024-02-11T00:47:33Z",
+    "exportable": true,
+    "height": 0,
+    "width": 0,
+    "icon": ""
+  },
+  "version": "0"
+}
+
+
