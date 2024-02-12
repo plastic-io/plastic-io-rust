@@ -153,9 +153,9 @@ fn start_message_listener(rx: Arc<Mutex<mpsc::Receiver<BusMessage>>>) {
   thread::spawn(move || {
     loop {
       let msg = rx.lock().unwrap().recv().unwrap();
-      let graph = get_graph_from_global_store(&msg.graph_id);
-
-      let scheduler = Scheduler::new(graph.unwrap());
+      let graph = get_graph_from_global_store(&msg.graph_id).unwrap();
+      // println!("message bus graph lookup: {}", graph.nodes[1].id);
+      let scheduler = Scheduler::new(graph);
       // determine which fucking bullshit was traversed
 
       // value: v8_value_to_serde_json(value, scope),
@@ -168,6 +168,9 @@ fn start_message_listener(rx: Arc<Mutex<mpsc::Receiver<BusMessage>>>) {
       // connector_graph_id: String::new(),
       // connector_node_id: String::new(),
       // edge_field: String::new(),
+
+      println!("message bus executing node by id: {}", msg.connector_node_id);
+
       scheduler.execute_node_by_id(msg.connector_node_id, msg.value, msg.field);
     }
   });
@@ -192,7 +195,7 @@ pub fn send_message(message: BusMessage) {
 
 impl Scheduler {
   pub fn new(graph: Graph) -> Self {
-
+    initialize_v8();
     let mut graphs = GRAPHS.lock().unwrap(); // Acquire the lock
     graphs.insert(graph.id.clone(), graph.clone()); // Insert the graph
 
@@ -345,19 +348,22 @@ impl Scheduler {
   }
 
   pub fn execute_node_by_id(&self, id: String, value: serde_json::Value, field: String) {
+    println!("execute_node_by_id id {}", id);
     // find a node with the given URL
     let node_options: Option<&Node> = self.graph.nodes.iter().find(|&node| node.id == id);
     match node_options {
       Some(node) => {
-        initialize_v8();
+        println!("SOME execute_node_by_id id {}", id);
+
         // Create and return a new Isolate. Ownership is transferred to the caller.
         let isolate = &mut v8::Isolate::new(v8::CreateParams::default());
         // Directly create a handle scope with the owned isolate.
         let handle_scope = &mut v8::HandleScope::new(isolate);
         let context = v8::Context::new(handle_scope);
         let scope: &mut v8::ContextScope<'_, v8::HandleScope<'_>> = &mut v8::ContextScope::new(handle_scope, context);
-
+        println!("About to execute node id {}", node.id);
         // Process messages after setting up V8 context and running scripts
+        println!("EDGE execute_node_by_id id {}", id);
         Scheduler::edge(scope, node.clone(), value, field);
 
       }

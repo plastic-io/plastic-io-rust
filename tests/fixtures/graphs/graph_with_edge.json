@@ -40,7 +40,7 @@
       "data": "",
       "properties": {},
       "template": {
-        "set": "'bar'"
+        "set": "'Hello, ' + 'world from node2!'"
       }
     }
   ],
