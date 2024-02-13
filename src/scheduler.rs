@@ -4,12 +4,9 @@ use serde::{Serialize, Deserialize};
 use chrono::{DateTime, Utc};
 use rusty_v8 as v8;
 use std::sync::{Once, mpsc, Arc, Mutex};
-use std::thread;
 use lazy_static::lazy_static;
 
 static V8_INIT: Once = Once::new();
-
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BusMessage {
   pub value: serde_json::Value,
@@ -65,11 +62,6 @@ pub struct Edge {
   pub field: String,
   pub connectors: Vec<Connector>,
 }
-
-// #[derive(Hash, PartialEq, Eq)]
-// pub enum SchedulerEvent {
-//   Begin,
-// }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Connector {
@@ -127,7 +119,6 @@ pub struct Scheduler {
   pub graph: Graph,
 }
 
-
 pub fn initialize_v8() {
   V8_INIT.call_once(|| {
     // Initialize V8
@@ -136,10 +127,8 @@ pub fn initialize_v8() {
     v8::V8::initialize();
     // Start the message listener
     let _receiver = MESSAGING_BUS.1.clone();
-    start_message_listener(_receiver);
   });
 }
-
 
 lazy_static! {
   static ref GRAPHS: Mutex<HashMap<String, Graph>> = Mutex::new(HashMap::new());
@@ -149,101 +138,93 @@ lazy_static! {
   };
 }
 
-fn start_message_listener(rx: Arc<Mutex<mpsc::Receiver<BusMessage>>>) {
-  thread::spawn(move || {
-    loop {
-      let msg = rx.lock().unwrap().recv().unwrap();
-      let graph = get_graph_from_global_store(&msg.graph_id).unwrap();
-      // println!("message bus graph lookup: {}", graph.nodes[1].id);
-      let scheduler = Scheduler::new(graph);
-      // determine which fucking bullshit was traversed
-
-      // value: v8_value_to_serde_json(value, scope),
-      // node_id: String::new(),
-      // graph_id: String::new(),
-      // connector_id: String::new(),
-      // field: String::new(),
-      // version: String::new(),
-      // connector_field: String::new(),
-      // connector_graph_id: String::new(),
-      // connector_node_id: String::new(),
-      // edge_field: String::new(),
-
-      println!("message bus executing node by id: {}", msg.connector_node_id);
-
-      scheduler.execute_node_by_id(msg.connector_node_id, msg.value, msg.field);
-    }
-  });
-}
-
 fn get_graph_from_global_store(id: &str) -> Option<Graph> {
-  let graphs = GRAPHS.lock().unwrap(); // Acquire the lock
-  graphs.get(id).cloned() // Return a copy of the graph if it exists
+  let graphs = GRAPHS.lock().unwrap();
+  graphs.get(id).cloned()
 }
 
-pub fn send_message(message: BusMessage) {
-  // Access the global sender
-  let sender_arc_mutex = MESSAGING_BUS.0.clone();
-
-  // Lock the mutex to get access to the sender
-  let sender = sender_arc_mutex.lock().expect("Failed to lock mutex for sender");
-
-  // Send the message
-  sender.send(message).expect("Failed to send message");
+fn serde_json_to_v8<'a>(
+  scope: &mut v8::HandleScope<'a>,
+  value: &Value,
+) -> v8::Local<'a, v8::Value> {
+  match value {
+    Value::Null => v8::null(scope).into(),
+    Value::Bool(b) => v8::Boolean::new(scope, *b).into(),
+    Value::Number(num) => {
+      if let Some(n) = num.as_f64() {
+        v8::Number::new(scope, n).into()
+      } else {
+        v8::undefined(scope).into()
+      }
+    },
+    Value::String(s) => v8::String::new(scope, s).unwrap().into(),
+    Value::Array(arr) => {
+      let array = v8::Array::new(scope, arr.len() as i32);
+      for (i, item) in arr.iter().enumerate() {
+        let v8_item = serde_json_to_v8(scope, item);
+        array.set_index(scope, i as u32, v8_item);
+      }
+      array.into()
+    },
+    Value::Object(obj) => {
+      let object = v8::Object::new(scope);
+      for (k, v) in obj {
+        let key = v8::String::new(scope, k).unwrap().into();
+        let value = serde_json_to_v8(scope, v);
+        object.set(scope, key, value).unwrap();
+      }
+      object.into()
+    },
+  }
 }
 
+fn v8_value_to_serde_json(value: v8::Local<v8::Value>, scope: &mut v8::HandleScope) -> serde_json::Value {
+  // println!("v8_value_to_serde_json {}", value);
+  if value.is_string() {
+      let value = value.to_rust_string_lossy(scope);
+      return serde_json::Value::String(value)
+  }  else if value.is_number() {
+    let num = value.to_number(scope).unwrap().value();
+    // JavaScript's Number is always a double-precision floating-point format (f64 in Rust)
+    if num.fract() == 0.0 {
+        // Check if it can be safely represented as an i64
+        if num >= i64::MIN as f64 && num <= i64::MAX as f64 {
+            serde_json::Value::Number(serde_json::Number::from(num as i64))
+        } else {
+            // Outside i64 range, keep as f64
+            serde_json::to_value(num).unwrap_or(serde_json::Value::Null)
+        }
+    } else {
+        // For non-integer numbers, represent as f64 directly
+        serde_json::to_value(num).unwrap_or(serde_json::Value::Null)
+    }
+  } else if value.is_boolean() {
+      let boolean = value.is_true();
+      return serde_json::Value::Bool(boolean)
+  } else if value.is_null() {
+    return serde_json::Value::Null
+  } else if value.is_undefined() {
+      // `undefined` is not directly representable in JSON;
+      // you might choose to use null or some other convention
+      return serde_json::Value::Null
+  } else {
+      // Handle arrays, objects, or other types as needed
+      return serde_json::Value::Null // Placeholder for simplicity
+  }
+}
 
 impl Scheduler {
   pub fn new(graph: Graph) -> Self {
     initialize_v8();
     let mut graphs = GRAPHS.lock().unwrap(); // Acquire the lock
     graphs.insert(graph.id.clone(), graph.clone()); // Insert the graph
-
     Self {
       graph,
     }
   }
-
   pub fn edge(scope: &mut v8::ContextScope<'_, v8::HandleScope<'_>>, node: Node, value: serde_json::Value, field: String) {
-
-    fn v8_value_to_serde_json(value: v8::Local<v8::Value>, scope: &mut v8::HandleScope) -> serde_json::Value {
-      // println!("v8_value_to_serde_json {}", value);
-      if value.is_string() {
-          let value = value.to_rust_string_lossy(scope);
-          return serde_json::Value::String(value)
-      }  else if value.is_number() {
-        let num = value.to_number(scope).unwrap().value();
-        // JavaScript's Number is always a double-precision floating-point format (f64 in Rust)
-        if num.fract() == 0.0 {
-            // Check if it can be safely represented as an i64
-            if num >= i64::MIN as f64 && num <= i64::MAX as f64 {
-                serde_json::Value::Number(serde_json::Number::from(num as i64))
-            } else {
-                // Outside i64 range, keep as f64
-                serde_json::to_value(num).unwrap_or(serde_json::Value::Null)
-            }
-        } else {
-            // For non-integer numbers, represent as f64 directly
-            serde_json::to_value(num).unwrap_or(serde_json::Value::Null)
-        }
-      } else if value.is_boolean() {
-          let boolean = value.is_true();
-          return serde_json::Value::Bool(boolean)
-      } else if value.is_null() {
-        return serde_json::Value::Null
-      } else if value.is_undefined() {
-          // `undefined` is not directly representable in JSON;
-          // you might choose to use null or some other convention
-          return serde_json::Value::Null
-      } else {
-          // Handle arrays, objects, or other types as needed
-          return serde_json::Value::Null // Placeholder for simplicity
-      }
-    }
-
     // Define a setter for each edges
     let object_template = v8::ObjectTemplate::new(scope);
-
     for edge in &node.edges {
       // figure out what connectors were connected to this URL and send a value to them
       for connector in &edge.connectors {
@@ -271,8 +252,8 @@ impl Scheduler {
           };
           // Iterate over property names and fetch their values from the V8 object
           for &property_name in &property_names {
-              let propertyName = v8::String::new(scope, property_name).unwrap().into();
-              if let Some(property_value) = this.get(scope, propertyName).and_then(|v| v.to_string(scope)) {
+              let v8_prop_name = v8::String::new(scope, property_name).unwrap().into();
+              if let Some(property_value) = this.get(scope, v8_prop_name).and_then(|v| v.to_string(scope)) {
                   let property_str = property_value.to_rust_string_lossy(scope);
                   // Match property names to fields in BusMessage and assign values
                   match property_name {
@@ -288,7 +269,9 @@ impl Scheduler {
                   }
               }
           }
-          send_message(bus_message);
+          let graph = get_graph_from_global_store(&bus_message.graph_id).unwrap();
+          let scheduler = Scheduler::new(graph);
+          scheduler.execute_node_by_id(bus_message.connector_node_id, bus_message.value, bus_message.field);
       };
         let getter = |scope: &mut v8::HandleScope<'_>, _: v8::Local<'_, v8::Name>, _: v8::PropertyCallbackArguments<'_>, mut rv: v8::ReturnValue<'_>| {
           let value = v8::Integer::new(scope, 42);
@@ -307,7 +290,6 @@ impl Scheduler {
           let value_v8 = v8::String::new(scope, value).expect("Failed to create value string");
           object_instance.set(scope, key_v8.into(), value_v8.into()).expect("Failed to set property");
         }
-
         let object_instance: v8::Local<'_, v8::Object> = object_template.new_instance(scope).unwrap();
         set_key_value(scope, "nodeId", &node.id, object_instance);
         set_key_value(scope, "graphId", &node.graph_id, object_instance);
@@ -317,23 +299,21 @@ impl Scheduler {
         set_key_value(scope, "connectorNodeId", &connector.node_id, object_instance);
         set_key_value(scope, "connectorVersion", &connector.version, object_instance);
         set_key_value(scope, "edgeField", &edge.field, object_instance);
-
+        set_key_value(scope, "field", &field, object_instance);
+        let value_key = v8::String::new(scope, "value").unwrap();
+        let value_value = serde_json_to_v8(scope, &value);
+        object_instance.set(scope, value_key.into(), value_value.into()).expect("Failed to set property");
         let global = scope.get_current_context().global(scope);
         let object_key = v8::String::new(scope, "edges").unwrap();
         global.set(scope, object_key.into(), object_instance.into()).unwrap();
-
       }
     }
-
     let code = v8::String::new(scope, &node.template.set).unwrap();
     let script = v8::Script::compile(scope, code, None).unwrap();
     let result = script.run(scope).unwrap();
-
     let result_str = result.to_string(scope).unwrap();
     println!("{}", result_str.to_rust_string_lossy(scope));
-
   }
-
   pub fn url(&self, url: String, value: serde_json::Value, field: String) {
     let node_options: Option<&Node> = self.graph.nodes.iter().find(|&node| node.url == url);
     match node_options {
@@ -348,24 +328,18 @@ impl Scheduler {
   }
 
   pub fn execute_node_by_id(&self, id: String, value: serde_json::Value, field: String) {
-    println!("execute_node_by_id id {}", id);
     // find a node with the given URL
     let node_options: Option<&Node> = self.graph.nodes.iter().find(|&node| node.id == id);
     match node_options {
       Some(node) => {
-        println!("SOME execute_node_by_id id {}", id);
-
         // Create and return a new Isolate. Ownership is transferred to the caller.
         let isolate = &mut v8::Isolate::new(v8::CreateParams::default());
         // Directly create a handle scope with the owned isolate.
         let handle_scope = &mut v8::HandleScope::new(isolate);
         let context = v8::Context::new(handle_scope);
         let scope: &mut v8::ContextScope<'_, v8::HandleScope<'_>> = &mut v8::ContextScope::new(handle_scope, context);
-        println!("About to execute node id {}", node.id);
         // Process messages after setting up V8 context and running scripts
-        println!("EDGE execute_node_by_id id {}", id);
         Scheduler::edge(scope, node.clone(), value, field);
-
       }
       None => {
         eprintln!("Cannot find node ID {}", id);
