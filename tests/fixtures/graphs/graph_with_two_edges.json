@@ -1,0 +1,86 @@
+{
+  "id": "graph3",
+  "url": "graph3",
+  "nodes": [
+    {
+      "id": "node1",
+      "linkedGraph": null,
+      "linkedNode": null,
+      "edges": [
+        {
+          "field": "field1_to_2",
+          "connectors": [
+            {
+              "id": "connector1_2",
+              "nodeId": "node2",
+              "field": "field2_to_1",
+              "graphId": "graph3",
+              "version": "0"
+            }
+          ]
+        }
+      ],
+      "version": "0",
+      "graphId": "graph3",
+      "url": "node1",
+      "data": "",
+      "properties": {},
+      "template": {
+        "set": "edges.field1_to_2 = 'Data from Node1 to Node2';"
+      }
+    },
+    {
+      "id": "node2",
+      "linkedGraph": null,
+      "linkedNode": null,
+      "edges": [
+        {
+          "field": "field2_to_3",
+          "connectors": [
+            {
+              "id": "connector2_3",
+              "nodeId": "node3",
+              "field": "field3_to_2",
+              "graphId": "graph3",
+              "version": "0"
+            }
+          ]
+        }
+      ],
+      "version": "0",
+      "graphId": "graph3",
+      "url": "node2",
+      "data": "",
+      "properties": {},
+      "template": {
+        "set": "edges.field2_to_3 = 'Data from Node2 to Node3';"
+      }
+    },
+    {
+      "id": "node3",
+      "linkedGraph": null,
+      "linkedNode": null,
+      "edges": [],
+      "version": "0",
+      "graphId": "graph3",
+      "url": "node3",
+      "data": "",
+      "properties": {},
+      "template": {
+        "set": "'End of the line. Data processed in Node3.'"
+      }
+    }
+  ],
+  "properties": {
+    "name": "SerialGraph",
+    "description": "A graph with 3 nodes connected in series.",
+    "createdBy": "Example Creator",
+    "createdOn": "2024-02-12T00:00:00Z",
+    "lastUpdate": "2024-02-12T00:00:00Z",
+    "exportable": true,
+    "height": 0,
+    "width": 0,
+    "icon": ""
+  },
+  "version": "0"
+}
