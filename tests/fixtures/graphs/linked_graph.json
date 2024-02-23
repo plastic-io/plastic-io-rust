@@ -1,0 +1,86 @@
+{
+  "nodes": [
+    {
+      "id": "1",
+      "edges": [
+        {
+          "field": "proxy",
+          "connectors": [
+            {
+              "id": "0",
+              "nodeId": "2",
+              "field": "proxy",
+              "graphId": "0",
+              "version": 0
+            }
+          ]
+        }
+      ],
+      "version": 0,
+      "graphId": "0",
+      "url": "index",
+      "data": "",
+      "properties": {
+        "name": "SerialGraph",
+        "description": "A graph with 3 nodes connected in series.",
+        "createdBy": "Example Creator",
+        "createdOn": "2024-02-12T00:00:00Z",
+        "lastUpdate": "2024-02-12T00:00:00Z",
+        "exportable": true,
+        "height": 0,
+        "width": 0,
+        "icon": ""
+      },
+      "template": {
+        "set": "edges.proxy = value;"
+      }
+    },
+    {
+      "id": "2",
+      "linkedGraph": {
+        "id": "1",
+        "url": "",
+        "version": 0,
+        "properties": {},
+        "loaded": false,
+        "data": {
+          "2": "TEST"
+        },
+        "fields": {
+          "inputs": {
+            "proxy": {
+              "id": "2",
+              "field": "proxy",
+              "dataType": "string",
+              "external": true
+            }
+          },
+          "outputs": {}
+        }
+      },
+      "edges": [],
+      "version": 0,
+      "graphId": "0",
+      "url": "index",
+      "data": "",
+      "properties": {},
+      "template": {
+        "set": ""
+      }
+    }
+  ],
+  "id": "0",
+  "url": "",
+  "version": 0,
+  "properties": {
+    "name": "SerialGraph",
+    "description": "A graph with 3 nodes connected in series.",
+    "createdBy": "Example Creator",
+    "createdOn": "2024-02-12T00:00:00Z",
+    "lastUpdate": "2024-02-12T00:00:00Z",
+    "exportable": true,
+    "height": 0,
+    "width": 0,
+    "icon": ""
+  }
+}

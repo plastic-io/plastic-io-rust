@@ -1,5 +1,5 @@
 {
-  "id": "graph3",
+  "id": "graph5",
   "url": "graph3",
   "nodes": [
     {
@@ -14,14 +14,14 @@
               "id": "connector1_2",
               "nodeId": "node2",
               "field": "field2_to_1",
-              "graphId": "graph3",
-              "version": "0"
+              "graphId": "graph5",
+              "version": 0
             }
           ]
         }
       ],
-      "version": "0",
-      "graphId": "graph3",
+      "version": 0,
+      "graphId": "graph5",
       "url": "node1",
       "data": "",
       "properties": {},
@@ -41,14 +41,14 @@
               "id": "connector2_3",
               "nodeId": "node3",
               "field": "field3_to_2",
-              "graphId": "graph3",
-              "version": "0"
+              "graphId": "graph5",
+              "version": 0
             }
           ]
         }
       ],
-      "version": "0",
-      "graphId": "graph3",
+      "version": 0,
+      "graphId": "graph5",
       "url": "node2",
       "data": "",
       "properties": {},
@@ -61,8 +61,8 @@
       "linkedGraph": null,
       "linkedNode": null,
       "edges": [],
-      "version": "0",
-      "graphId": "graph3",
+      "version": 0,
+      "graphId": "graph5",
       "url": "node3",
       "data": "",
       "properties": {},
@@ -82,5 +82,5 @@
     "width": 0,
     "icon": ""
   },
-  "version": "0"
+  "version": 0
 }

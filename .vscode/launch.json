@@ -59,25 +59,6 @@
       },
       "args": [],
       "cwd": "${workspaceFolder}"
-    },
-    {
-      "type": "lldb",
-      "request": "launch",
-      "name": "Debug integration test 'graph_tests'",
-      "cargo": {
-        "args": [
-          "test",
-          "--no-run",
-          "--test=graph_tests",
-          "--package=plastic_io"
-        ],
-        "filter": {
-          "name": "graph_tests",
-          "kind": "test"
-        }
-      },
-      "args": [],
-      "cwd": "${workspaceFolder}"
     }
   ]
 }

@@ -15,12 +15,12 @@
               "nodeId": "node2",
               "field": "field2_to_1",
               "graphId": "graph3",
-              "version": "0"
+              "version": 0
             }
           ]
         }
       ],
-      "version": "0",
+      "version": 0,
       "graphId": "graph3",
       "url": "node1",
       "data": "",
@@ -42,12 +42,12 @@
               "nodeId": "node3",
               "field": "field3_to_2",
               "graphId": "graph3",
-              "version": "0"
+              "version": 0
             }
           ]
         }
       ],
-      "version": "0",
+      "version": 0,
       "graphId": "graph3",
       "url": "node2",
       "data": "",
@@ -61,7 +61,7 @@
       "linkedGraph": null,
       "linkedNode": null,
       "edges": [],
-      "version": "0",
+      "version": 0,
       "graphId": "graph3",
       "url": "node3",
       "data": "",
@@ -82,5 +82,5 @@
     "width": 0,
     "icon": ""
   },
-  "version": "0"
+  "version": 0
 }

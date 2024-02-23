@@ -1,0 +1,56 @@
+{
+  "nodes": [
+      {
+          "id": "1",
+          "edges": [
+              {
+                  "field": "proxy",
+                  "connectors": [
+                      {
+                          "id": "0",
+                          "nodeId": "2",
+                          "field": "proxy",
+                          "graphId": "0",
+                          "version": 0,
+                          "type": "normal"
+                      }
+                  ]
+              }
+          ],
+          "version": 0,
+          "graphId": "0",
+          "url": "index",
+          "data": "",
+          "properties": {},
+          "template": {
+              "set": "edges.proxy = value;"
+          }
+      },
+      {
+          "id": "2",
+          "edges": [],
+          "version": 0,
+          "graphId": "0",
+          "url": "",
+          "data": "",
+          "properties": {},
+          "template": {
+              "set": "'value'"
+          }
+      }
+  ],
+  "id": "0",
+  "url": "0",
+  "version": 0,
+  "properties": {
+      "name": "",
+      "icon": "",
+      "description": "",
+      "createdBy": "",
+      "createdOn": "2024-02-11T00:47:33Z",
+      "lastUpdate": "2024-02-11T00:47:33Z",
+      "exportable": false,
+      "height": 1,
+      "width": 1
+  }
+}

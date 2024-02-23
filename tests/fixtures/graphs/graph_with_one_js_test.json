@@ -7,7 +7,7 @@
       "linkedGraph": null,
       "linkedNode": null,
       "edges": [],
-      "version": "0",
+      "version": 0,
       "graphId": "graph0",
       "url": "node1",
       "data": "",
@@ -28,7 +28,7 @@
     "width": 0,
     "icon": ""
   },
-  "version": "0"
+  "version": 0
 }
 
 
