@@ -91,6 +91,9 @@ pub struct BusMessage {
     pub connector_graph_id: String,
     pub connector_node_id: String,
     pub edge_field: String,
+    pub caller_graph_id: String,
+    pub caller_node_id: String,
+    pub caller_scheduler_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -137,6 +140,7 @@ pub struct Node {
 pub struct Edge {
     pub field: String,
     pub connectors: Vec<Connector>,
+    pub external: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -155,7 +159,6 @@ pub struct FieldMap {
     pub id: String,
     pub field: String,
     pub data_type: String,
-    pub external: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -199,6 +202,7 @@ pub fn parse_graph(json_str: &str) -> Result<Graph, serde_json::Error> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SchedulerCaller {
     pub scheduler_id: String,
+    pub graph_id: String,
     pub node_id: String,
 }
 pub struct Scheduler {
@@ -312,11 +316,13 @@ impl Scheduler {
         let emitter = event_emitters.entry(id.clone())
             .or_insert_with(|| Arc::new(EventEmitter::new()))
             .clone();
+        let graph_id = graph.id.clone();
         Self {
             event_emitter: emitter,
             graph,
             id,
             caller: Mutex::new(SchedulerCaller {
+                graph_id,
                 scheduler_id: "".to_string(),
                 node_id: "".to_string(),
             }),
@@ -343,6 +349,7 @@ impl Scheduler {
         node: Node,
         value: serde_json::Value,
         field: String,
+        caller: SchedulerCaller,
     ) {
         // println!("Begin edge traversal scheduler_id: {}", self.id);
         // Define a setter for each edges
@@ -358,8 +365,18 @@ impl Scheduler {
                   "value": value,
                 }),
             });
+            let external_connector = Connector {
+                id: "external".to_string(),
+                node_id: caller.node_id.clone(),
+                field: "foo".to_string(),
+                graph_id: caller.graph_id.clone(),
+                version: 0,
+            };
+            let has_external_connection = caller.scheduler_id != "" && edge.external;
+            let external_connector_vec: Vec<&Connector> = if has_external_connection { vec![&external_connector] } else { Vec::new() };
+            let connector_collection = &edge.connectors;
             // figure out what connectors were connected to this URL and send a value to them
-            for connector in &edge.connectors {
+            for connector in connector_collection.iter().chain(external_connector_vec) {
                 self.event_emitter.emit(Event {
                     event_type: EventType::BeginConnector,
                     data: serde_json::json!({
@@ -390,6 +407,9 @@ impl Scheduler {
                             "connectorGraphId",
                             "connectorNodeId",
                             "connectorVersion",
+                            "callerNodeId",
+                            "callerGraphId",
+                            "callerSchedulerId",
                             "edgeField",
                         ];
                         // Initialize a BusMessage with empty or default values
@@ -404,6 +424,9 @@ impl Scheduler {
                             connector_graph_id: String::new(),
                             connector_node_id: String::new(),
                             edge_field: String::new(),
+                            caller_graph_id: String::new(),
+                            caller_node_id: String::new(),
+                            caller_scheduler_id: String::new(),
                         };
                         // Iterate over property names and fetch their values from the V8 object
                         for &property_name in &property_names {
@@ -419,8 +442,12 @@ impl Scheduler {
                                     "nodeId" => bus_message.node_id = property_str,
                                     "schedulerId" => bus_message.scheduler_id = property_str,
                                     "graphId" => bus_message.graph_id = property_str,
+                                    "field" => bus_message.field = property_str,
                                     "connectorId" => bus_message.connector_id = property_str,
                                     "connectorField" => bus_message.connector_field = property_str,
+                                    "callerGraphId" => bus_message.caller_graph_id = property_str,
+                                    "callerNodeId" => bus_message.caller_node_id = property_str,
+                                    "callerSchedulerId" => bus_message.caller_scheduler_id = property_str,
                                     "connectorGraphId" => {
                                         bus_message.connector_graph_id = property_str
                                     }
@@ -432,18 +459,34 @@ impl Scheduler {
                                 }
                             }
                         }
-                        let graph = get_graph_from_global_store(&bus_message.graph_id);
-                        let scheduler = Scheduler::new(graph.unwrap(), Some(bus_message.scheduler_id.clone()));
-                        // println!("found scheduler {}", scheduler.id);
-                        let caller = SchedulerCaller {
-                            scheduler_id: bus_message.scheduler_id,
-                            node_id: bus_message.node_id,
+                        let is_external_connector: bool = bus_message.connector_id == "external";
+                        let graph_id = if is_external_connector { bus_message.caller_graph_id } else { bus_message.graph_id.clone() };
+                        let node_id = if is_external_connector { bus_message.caller_node_id } else { bus_message.connector_node_id.clone() };
+                        let graph = get_graph_from_global_store(&graph_id).unwrap();
+                        let scheduler = Scheduler::new(graph.clone(), Some(bus_message.scheduler_id.clone()));
+                        let target_field = if is_external_connector {graph
+                            .clone()
+                            .nodes
+                            .iter()
+                            .find(|node| node.id == node_id)
+                            .unwrap().linked_graph
+                            .clone()
+                            .unwrap()
+                            .fields.outputs
+                            .get(&bus_message.field.clone())
+                            .unwrap()
+                            .field
+                            .clone()} else {bus_message.field.clone()};
+                        let edge_caller = SchedulerCaller {
+                            graph_id: bus_message.graph_id,
+                            scheduler_id: bus_message.scheduler_id.clone(),
+                            node_id: bus_message.connector_node_id,
                         };
                         scheduler.execute_node_by_id(
-                            bus_message.connector_node_id,
-                            bus_message.value,
-                            bus_message.field,
-                            caller
+                            node_id,
+                            bus_message.value.clone(),
+                            target_field,
+                            edge_caller.clone(),
                         );
                     };
                 let getter = |scope: &mut v8::HandleScope<'_>,
@@ -491,6 +534,9 @@ impl Scheduler {
                 );
                 set_key_value(scope, "edgeField", &edge.field, object_instance);
                 set_key_value(scope, "field", &field, object_instance);
+                set_key_value(scope, "callerGraphId", &caller.graph_id, object_instance);
+                set_key_value(scope, "callerNodeId", &caller.node_id, object_instance);
+                set_key_value(scope, "callerSchedulerId", &caller.scheduler_id, object_instance);
                 let value_key = v8::String::new(scope, "value").unwrap();
                 let value_value = serde_json_to_v8(scope, &value);
                 let global = scope.get_current_context().global(scope);
@@ -610,6 +656,7 @@ impl Scheduler {
                     }),
                 });
                 let root_caller = SchedulerCaller {
+                    graph_id: self.graph.id.clone(),
                     scheduler_id: self.id.clone(),
                     node_id: node.id.clone(),
                 };
@@ -634,6 +681,8 @@ impl Scheduler {
 
     fn execute_node_by_id(&self, id: String, value: serde_json::Value, field: String, caller: SchedulerCaller) {
         // find a node with the given URL
+        println!("id {}", id);
+        println!("graph {:?}", self.graph);
         let node_option: Option<&Node> = self.graph.nodes.iter().find(|&node| node.id == id);
         match node_option {
             Some(node) => {
@@ -661,7 +710,7 @@ impl Scheduler {
                     &mut v8::ContextScope::new(handle_scope, context);
                 // Process messages after setting up V8 context and running scripts
                 println!("Traverse edge for scheduler_id {}", self.id);
-                self.edge(scope, node.clone(), value, field);
+                self.edge(scope, node.clone(), value, field, caller);
             }
             None => {
                 eprintln!("Cannot find node ID {}", id);
@@ -677,7 +726,7 @@ mod tests {
 
     #[test]
     fn minimal_viable_graph() {
-        let graph = Scheduler::_load_graph_from_file("tests/fixtures/graphs/minimal_graph.json");
+        let graph = Scheduler::_load_graph_from_file("tests/fixtures/graphs/graph_minimal.json");
         let scheduler = Scheduler::new(graph, None);
         assert_eq!(scheduler.graph.id, "graph2", "The graph id did not match 'graph1'");
     }
@@ -770,9 +819,9 @@ mod tests {
 
     #[tokio::test]
     async fn async_linked_graph() {
-        let (tx, mut _rx) = tokio::sync::mpsc::channel(1);
+        let (tx, mut rx) = tokio::sync::mpsc::channel(1);
 
-        Scheduler::_load_graph_from_file("tests/fixtures/graphs/linked_graph.json");
+        Scheduler::_load_graph_from_file("tests/fixtures/graphs/graph_linked.json");
         let graph = Scheduler::_load_graph_from_file("tests/fixtures/graphs/graph_proxy_to_log.json");
         let scheduler = Scheduler::new(graph, None);
 
@@ -780,11 +829,47 @@ mod tests {
             let _ = tx.try_send(event);
         });
 
+        let test_value = "foo";
+
         scheduler.url(
             "index".to_string(),
-            serde_json::Value::String("value".to_string()),
+            serde_json::Value::String(test_value.to_string()),
             "field".to_string(),
         );
+
+        let event = tokio::time::timeout(std::time::Duration::from_secs(5), rx.recv())
+            .await.expect("Timeout waiting for event").expect("Channel closed unexpectedly");
+        let value = event.data.get("return").and_then(serde_json::Value::as_str).expect("Could not find return key.");
+        println!("{}", value);
+        assert_eq!(value, test_value, "Expected to see another value here.");
+
+    }
+
+    #[tokio::test]
+    async fn async_linked_cycle_graph() {
+        let (tx, mut rx) = tokio::sync::mpsc::channel(1);
+
+        Scheduler::_load_graph_from_file("tests/fixtures/graphs/graph_cycle_inner.json");
+        let graph = Scheduler::_load_graph_from_file("tests/fixtures/graphs/graph_cycle_outer.json");
+        let scheduler = Scheduler::new(graph, None);
+
+        scheduler.event_emitter.subscribe(EventType::AfterSet, move |event| {
+            let _ = tx.try_send(event);
+        });
+
+        let test_value = "foo";
+
+        scheduler.url(
+            "index".to_string(),
+            serde_json::Value::String(test_value.to_string()),
+            "field".to_string(),
+        );
+
+        let event = tokio::time::timeout(std::time::Duration::from_secs(5), rx.recv())
+            .await.expect("Timeout waiting for event").expect("Channel closed unexpectedly");
+        let value = event.data.get("return").and_then(serde_json::Value::as_str).expect("Could not find return key.");
+        println!("{}", value);
+        assert_eq!(value, test_value, "Expected to see another value here.");
 
     }
 

@@ -1,0 +1,108 @@
+{
+  "nodes": [
+    {
+      "id": "1",
+      "edges": [
+        {
+          "field": "proxy",
+          "external": false,
+          "connectors": [
+            {
+              "id": "0",
+              "nodeId": "2",
+              "field": "proxy",
+              "graphId": "outer",
+              "version": 0
+            }
+          ]
+        }
+      ],
+      "version": 0,
+      "graphId": "outer",
+      "url": "index",
+      "data": "",
+      "properties": {},
+      "template": {
+        "set": "edges.proxy = value;"
+      }
+    },
+    {
+      "id": "3",
+      "linkedGraph": {
+        "id": "inner",
+        "version": 0,
+        "data": {},
+        "properties": {},
+        "url": "",
+        "loaded": false,
+        "fields": {
+          "inputs": {
+            "proxy": {
+              "id": "1",
+              "field": "proxy",
+              "dataType": "string",
+              "external": true
+            }
+          },
+          "outputs": {
+            "proxy": {
+              "id": "2",
+              "field": "proxy",
+              "dataType": "string",
+              "external": true
+            }
+          }
+        }
+      },
+      "edges": [
+        {
+          "field": "proxy",
+          "external": false,
+          "connectors": [
+            {
+              "id": "0",
+              "nodeId": "2",
+              "field": "proxy",
+              "graphId": "outer",
+              "version": 0
+            }
+          ]
+        }
+      ],
+      "version": 0,
+      "graphId": "outer",
+      "url": "index",
+      "data": "",
+      "properties": {},
+      "template": {
+        "set": ""
+      }
+    },
+    {
+      "id": "2",
+      "edges": [],
+      "version": 0,
+      "graphId": "outer",
+      "url": "",
+      "data": "",
+      "properties": {},
+      "template": {
+        "set": "value"
+      }
+    }
+  ],
+  "id": "outer",
+  "version": 0,
+  "url": "",
+  "properties": {
+    "name": "",
+    "description": "",
+    "createdBy": "",
+    "createdOn": "2024-02-12T00:00:00Z",
+    "lastUpdate": "2024-02-12T00:00:00Z",
+    "exportable": false,
+    "height": 1,
+    "width": 1,
+    "icon": ""
+  }
+}

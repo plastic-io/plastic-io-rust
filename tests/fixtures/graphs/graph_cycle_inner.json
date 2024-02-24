@@ -1,0 +1,62 @@
+{
+  "nodes": [
+    {
+      "id": "1",
+      "edges": [
+        {
+          "field": "proxy",
+          "external": true,
+          "connectors": [
+            {
+              "id": "0",
+              "nodeId": "2",
+              "field": "proxy",
+              "graphId": "inner",
+              "version": 0
+            }
+          ]
+        }
+      ],
+      "version": 0,
+      "graphId": "inner",
+      "url": "index",
+      "data": "",
+      "properties": {},
+      "template": {
+        "set": "edges.proxy = value;"
+      }
+    },
+    {
+      "id": "2",
+      "edges": [
+        {
+          "field": "proxy",
+          "external": false,
+          "connectors": []
+        }
+      ],
+      "version": 0,
+      "graphId": "inner",
+      "url": "index",
+      "data": "",
+      "properties": {},
+      "template": {
+        "set": "edges.proxy = value;"
+      }
+    }
+  ],
+  "id": "inner",
+  "version": 0,
+  "url": "",
+  "properties": {
+    "icon": "",
+    "name": "",
+    "description": "",
+    "createdBy": "",
+    "createdOn": "2024-02-12T00:00:00Z",
+    "lastUpdate": "2024-02-12T00:00:00Z",
+    "exportable": false,
+    "height": 1,
+    "width": 1
+  }
+}

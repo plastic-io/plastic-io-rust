@@ -5,6 +5,7 @@
           "edges": [
               {
                   "field": "proxy",
+                  "external": false,
                   "connectors": [
                       {
                           "id": "0",
@@ -35,7 +36,7 @@
           "data": "",
           "properties": {},
           "template": {
-              "set": "'value'"
+              "set": "value"
           }
       }
   ],

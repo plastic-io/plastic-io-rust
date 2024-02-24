@@ -9,6 +9,7 @@
       "edges": [
         {
           "field": "field1_to_2",
+          "external": false,
           "connectors": [
             {
               "id": "connector1_2",
@@ -36,6 +37,7 @@
       "edges": [
         {
           "field": "field2_to_3",
+          "external": false,
           "connectors": [
             {
               "id": "connector2_3",

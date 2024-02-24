@@ -5,6 +5,7 @@
       "edges": [
         {
           "field": "proxy",
+          "external": false,
           "connectors": [
             {
               "id": "0",
@@ -20,7 +21,17 @@
       "graphId": "0",
       "url": "index",
       "data": "",
-      "properties": {},
+      "properties": {
+        "name": "SerialGraph",
+        "description": "A graph with 3 nodes connected in series.",
+        "createdBy": "Example Creator",
+        "createdOn": "2024-02-12T00:00:00Z",
+        "lastUpdate": "2024-02-12T00:00:00Z",
+        "exportable": true,
+        "height": 0,
+        "width": 0,
+        "icon": ""
+      },
       "template": {
         "set": "edges.proxy = value;"
       }
@@ -28,45 +39,27 @@
     {
       "id": "2",
       "linkedGraph": {
-        "id": "inner",
-        "version": 0,
-        "data": {},
-        "properties": {},
+        "id": "1",
         "url": "",
+        "version": 0,
+        "properties": {},
         "loaded": false,
+        "data": {
+          "2": "TEST"
+        },
         "fields": {
           "inputs": {
-            "proxy": {
-              "id": "1",
-              "field": "proxy",
-              "dataType": "string",
-              "external": true
-            }
-          },
-          "outputs": {
             "proxy": {
               "id": "2",
               "field": "proxy",
               "dataType": "string",
               "external": true
             }
-          }
+          },
+          "outputs": {}
         }
       },
-      "edges": [
-        {
-          "field": "proxy",
-          "connectors": [
-            {
-              "id": "0",
-              "nodeId": "Z",
-              "field": "proxy",
-              "graphId": "0",
-              "version": 0
-            }
-          ]
-        }
-      ],
+      "edges": [],
       "version": 0,
       "graphId": "0",
       "url": "index",
@@ -75,32 +68,20 @@
       "template": {
         "set": ""
       }
-    },
-    {
-      "id": "Z",
-      "edges": [],
-      "version": 0,
-      "graphId": "0",
-      "url": "",
-      "data": "",
-      "properties": {},
-      "template": {
-        "set": "console.info(value);"
-      }
     }
   ],
   "id": "0",
-  "version": 0,
   "url": "",
+  "version": 0,
   "properties": {
-    "name": "",
-    "description": "",
-    "createdBy": "",
+    "name": "SerialGraph",
+    "description": "A graph with 3 nodes connected in series.",
+    "createdBy": "Example Creator",
     "createdOn": "2024-02-12T00:00:00Z",
     "lastUpdate": "2024-02-12T00:00:00Z",
-    "exportable": false,
-    "height": 1,
-    "width": 1,
+    "exportable": true,
+    "height": 0,
+    "width": 0,
     "icon": ""
   }
 }
