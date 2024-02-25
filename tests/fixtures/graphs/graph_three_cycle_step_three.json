@@ -11,19 +11,19 @@
               "id": "0",
               "nodeId": "2",
               "field": "proxy",
-              "graphId": "inner",
+              "graphId": "three",
               "version": 0
             }
           ]
         }
       ],
       "version": 0,
-      "graphId": "inner",
+      "graphId": "three",
       "url": "index",
       "data": "",
       "properties": {},
       "template": {
-        "set": "edges.proxy = value + ' bar';"
+        "set": "edges.proxy = value + ' baz';"
       }
     },
     {
@@ -36,16 +36,16 @@
         }
       ],
       "version": 0,
-      "graphId": "inner",
-      "url": "index2",
+      "graphId": "three",
+      "url": "indexz",
       "data": "",
       "properties": {},
       "template": {
-        "set": "edges.proxy = value;"
+        "set": "edges.proxy = value + ' bar';"
       }
     }
   ],
-  "id": "inner",
+  "id": "three",
   "version": 0,
   "url": "",
   "properties": {

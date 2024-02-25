@@ -11,14 +11,14 @@
               "id": "0",
               "nodeId": "3",
               "field": "proxy",
-              "graphId": "outer",
+              "graphId": "two",
               "version": 0
             }
           ]
         }
       ],
       "version": 0,
-      "graphId": "outer",
+      "graphId": "two",
       "url": "index",
       "data": "",
       "properties": {},
@@ -29,7 +29,7 @@
     {
       "id": "3",
       "linkedGraph": {
-        "id": "inner",
+        "id": "three",
         "version": 0,
         "data": {},
         "properties": {},
@@ -63,14 +63,14 @@
               "id": "0",
               "nodeId": "2",
               "field": "proxy",
-              "graphId": "outer",
+              "graphId": "two",
               "version": 0
             }
           ]
         }
       ],
       "version": 0,
-      "graphId": "outer",
+      "graphId": "two",
       "url": "index",
       "data": "",
       "properties": {},
@@ -82,7 +82,7 @@
       "id": "2",
       "edges": [],
       "version": 0,
-      "graphId": "outer",
+      "graphId": "two",
       "url": "",
       "data": "",
       "properties": {},
@@ -91,7 +91,7 @@
       }
     }
   ],
-  "id": "outer",
+  "id": "two",
   "version": 0,
   "url": "",
   "properties": {

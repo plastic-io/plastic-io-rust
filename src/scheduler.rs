@@ -29,7 +29,7 @@ impl EventEmitter {
     where
         F: Fn(Event) + 'static + Send + Sync,
     {
-        let mut subscribers = self.subscribers.lock().unwrap();
+        let mut subscribers = self.subscribers.lock().expect("Could not lock subscribers hashmap");
         subscribers
             .entry(event_type)
             .or_insert_with(Vec::new)
@@ -37,7 +37,7 @@ impl EventEmitter {
     }
 
     pub fn emit(&self, event: Event) {
-        let subscribers = self.subscribers.lock().unwrap();
+        let subscribers = self.subscribers.lock().expect("Could not lock subscribers hashmap");
         if let Some(callbacks) = subscribers.get(&event.event_type) {
             let mut handles: Vec<JoinHandle<()>> = Vec::new();
 
@@ -224,11 +224,11 @@ pub fn initialize_v8() {
 lazy_static! {
     static ref GRAPHS: GlobalGraphs = Mutex::new(HashMap::new());
     static ref EVENT_EMITTERS: GlobalEventEmitters = Arc::new(Mutex::new(HashMap::new()));
-    static ref GLOBAL_EVENT_EMITTER: Arc<EventEmitter> = Arc::new(EventEmitter::new());
+    static ref SEQUENCE_COUNTER: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
 }
 
 fn get_graph_from_global_store(id: &str) -> Option<Graph> {
-    let graphs = GRAPHS.lock().unwrap();
+    let graphs = GRAPHS.lock().expect("Could not lock global graph store.");
     graphs.get(id).cloned()
 }
 
@@ -236,6 +236,7 @@ fn serde_json_to_v8<'a>(
     scope: &mut v8::HandleScope<'a>,
     value: &Value,
 ) -> v8::Local<'a, v8::Value> {
+    let err = "Failed to convert JSON to v8 value";
     match value {
         Value::Null => v8::null(scope).into(),
         Value::Bool(b) => v8::Boolean::new(scope, *b).into(),
@@ -246,7 +247,7 @@ fn serde_json_to_v8<'a>(
                 v8::undefined(scope).into()
             }
         }
-        Value::String(s) => v8::String::new(scope, s).unwrap().into(),
+        Value::String(s) => v8::String::new(scope, s).expect(err).into(),
         Value::Array(arr) => {
             let array = v8::Array::new(scope, arr.len() as i32);
             for (i, item) in arr.iter().enumerate() {
@@ -258,9 +259,9 @@ fn serde_json_to_v8<'a>(
         Value::Object(obj) => {
             let object = v8::Object::new(scope);
             for (k, v) in obj {
-                let key = v8::String::new(scope, k).unwrap().into();
+                let key = v8::String::new(scope, k).expect(err).into();
                 let value = serde_json_to_v8(scope, v);
-                object.set(scope, key, value).unwrap();
+                object.set(scope, key, value).expect(err);
             }
             object.into()
         }
@@ -271,12 +272,12 @@ fn v8_value_to_serde_json(
     value: v8::Local<v8::Value>,
     scope: &mut v8::HandleScope,
 ) -> serde_json::Value {
-    // println!("v8_value_to_serde_json {}", value);
+    let err = "Failed to convert v8 value to JSON";
     if value.is_string() {
         let value = value.to_rust_string_lossy(scope);
         return serde_json::Value::String(value);
     } else if value.is_number() {
-        let num = value.to_number(scope).unwrap().value();
+        let num = value.to_number(scope).expect(err).value();
         // JavaScript's Number is always a double-precision floating-point format (f64 in Rust)
         if num.fract() == 0.0 {
             // Check if it can be safely represented as an i64
@@ -312,7 +313,7 @@ impl Scheduler {
         Scheduler::cache_set(graph.clone());
 
         let id = scheduler_id.unwrap_or_else(|| Uuid::new_v4().to_string());
-        let mut event_emitters = EVENT_EMITTERS.lock().unwrap();
+        let mut event_emitters = EVENT_EMITTERS.lock().expect("Could not lock global event emitter hash map");
         let emitter = event_emitters.entry(id.clone())
             .or_insert_with(|| Arc::new(EventEmitter::new()))
             .clone();
@@ -329,11 +330,18 @@ impl Scheduler {
         }
     }
     // fn load(id: String) -> Graph {
-    //     return get_graph_from_global_store(&id).unwrap();
+    //     return get_graph_from_global_store(&id).expect();
     // }
+    fn log(category: &str, msg: String) {
+
+        println!("------------------------------------------------------------------------------------------------------------");
+        println!("{}", category);
+        println!("Sequence: {}", Scheduler::get_seq_count());
+        println!("{}", msg.replace(",", "\n"));
+    }
     pub fn cache_set(graph: Graph) {
-        let mut graphs = GRAPHS.lock().unwrap(); // Acquire the lock
-        graphs.insert(graph.id.clone(), graph.clone()); // Insert the graph
+        let mut graphs = GRAPHS.lock().expect("Could not lock global graph cache.");
+        graphs.insert(graph.id.clone(), graph.clone());
     }
     pub fn _load_graph_from_file(path: &str) -> Graph {
         let graph_string = std::fs::read_to_string(path)
@@ -343,17 +351,47 @@ impl Scheduler {
         Scheduler::cache_set(graph.clone());
         return graph;
     }
+    fn increment_sequence_counter() {
+        let mut sequence_counter = SEQUENCE_COUNTER.lock().expect("Could not lock sequence number");
+        *sequence_counter += 1;
+    }
+    fn get_seq_count() -> u32 {
+        let sequence_counter = SEQUENCE_COUNTER.lock().expect("Could not lock sequence number");
+        return sequence_counter.clone();
+    }
+    fn set_key_value(
+        scope: &mut v8::HandleScope<'_>,
+        key: &str,
+        value: &str,
+        object_instance: v8::Local<'_, v8::Object>,
+    ) {
+        let key_v8 = v8::String::new(scope, key).expect("Failed to create key string");
+        let value_v8 =
+            v8::String::new(scope, value).expect("Failed to create value string");
+        object_instance
+            .set(scope, key_v8.into(), value_v8.into())
+            .expect("Failed to set property");
+    }
     fn edge(
         &self,
-        scope: &mut v8::ContextScope<'_, v8::HandleScope<'_>>,
         node: Node,
         value: serde_json::Value,
         field: String,
         caller: SchedulerCaller,
     ) {
-        // println!("Begin edge traversal scheduler_id: {}", self.id);
+        // Process messages after setting up V8 context and running scripts
+        Scheduler::increment_sequence_counter();
+        Scheduler::log("edge", format!("graph_id: {}, node_id: {}, scheduler_id: {}, field: {}, caller_node_id: {}, caller_graph_id: {}, caller_scheduler_id: {}, value: {:?}", self.graph.id, node.id, self.id, field, caller.node_id, caller.graph_id, caller.scheduler_id, value));
+        // Create and return a new Isolate. Ownership is transferred to the caller.
+        let isolate = &mut v8::Isolate::new(v8::CreateParams::default());
+        // Directly create a handle scope with the owned isolate.
+        let handle_scope = &mut v8::HandleScope::new(isolate);
+        let context = v8::Context::new(handle_scope);
+        let scope: &mut v8::ContextScope<'_, v8::HandleScope<'_>> = &mut v8::ContextScope::new(handle_scope, context);
         // Define a setter for each edges
         let object_template = v8::ObjectTemplate::new(scope);
+        let edges_key = v8::String::new(scope, "edges").expect("Could not create v8 edges key");
+        let mut connector_count = 0;
         for edge in &node.edges {
             self.event_emitter.emit(Event {
                 event_type: EventType::BeginEdge,
@@ -375,8 +413,11 @@ impl Scheduler {
             let has_external_connection = caller.scheduler_id != "" && edge.external;
             let external_connector_vec: Vec<&Connector> = if has_external_connection { vec![&external_connector] } else { Vec::new() };
             let connector_collection = &edge.connectors;
+            let connectors = connector_collection.iter().chain(external_connector_vec);
             // figure out what connectors were connected to this URL and send a value to them
-            for connector in connector_collection.iter().chain(external_connector_vec) {
+            Scheduler::log("edge connectors", format!("graph_id: {}, node_id: {}, scheduler_id: {}, field: {}, caller_node_id: {}, caller_graph_id: {}, caller_scheduler_id: {}", self.graph.id, node.id, self.id, field, caller.node_id, caller.graph_id, caller.scheduler_id));
+            for connector in connectors {
+                connector_count += 1;
                 self.event_emitter.emit(Event {
                     event_type: EventType::BeginConnector,
                     data: serde_json::json!({
@@ -431,7 +472,7 @@ impl Scheduler {
                         // Iterate over property names and fetch their values from the V8 object
                         for &property_name in &property_names {
                             let v8_prop_name =
-                                v8::String::new(scope, property_name).unwrap().into();
+                                v8::String::new(scope, property_name).expect("Failed to set edge properties").into();
                             if let Some(property_value) = this
                                 .get(scope, v8_prop_name)
                                 .and_then(|v| v.to_string(scope))
@@ -462,26 +503,26 @@ impl Scheduler {
                         let is_external_connector: bool = bus_message.connector_id == "external";
                         let graph_id = if is_external_connector { bus_message.caller_graph_id } else { bus_message.graph_id.clone() };
                         let node_id = if is_external_connector { bus_message.caller_node_id } else { bus_message.connector_node_id.clone() };
-                        let graph = get_graph_from_global_store(&graph_id).unwrap();
+                        let graph = get_graph_from_global_store(&graph_id).expect(&format!("Could not load next graph. graph_id: {}", graph_id));
                         let scheduler = Scheduler::new(graph.clone(), Some(bus_message.scheduler_id.clone()));
-                        let target_field = if is_external_connector {graph
-                            .clone()
-                            .nodes
-                            .iter()
+                        let nodes = graph.nodes;
+                        let external_node = nodes.iter()
                             .find(|node| node.id == node_id)
-                            .unwrap().linked_graph
+                            .expect(&format!("Could not load next node.  node_id: {}, graph_id: {}", node_id, graph_id));
+                        let target_field = if is_external_connector {external_node.linked_graph
                             .clone()
-                            .unwrap()
+                            .expect(&format!("Could not load expected linked graph fragment.  node_id: {}, graph_id: {}", node_id, graph_id))
                             .fields.outputs
-                            .get(&bus_message.field.clone())
-                            .unwrap()
+                            .get(&bus_message.edge_field.clone())
+                            .expect(&format!("Could not load expected linked graph field fragment.  node_id: {}, graph_id: {}", node_id, graph_id))
                             .field
-                            .clone()} else {bus_message.field.clone()};
+                            .clone()} else {bus_message.connector_field.clone()};
                         let edge_caller = SchedulerCaller {
-                            graph_id: bus_message.graph_id,
+                            graph_id: bus_message.graph_id.clone(),
                             scheduler_id: bus_message.scheduler_id.clone(),
-                            node_id: bus_message.connector_node_id,
+                            node_id: bus_message.connector_node_id.clone(),
                         };
+                        Scheduler::log("edge connector invoke", format!("graph_id: {}, node_id: {}, scheduler_id: {}, target_field: {}, caller_node_id: {}, caller_graph_id: {}, caller_scheduler_id: {}, value: {:?}", bus_message.graph_id, node_id, bus_message.scheduler_id, target_field, edge_caller.node_id, edge_caller.graph_id, edge_caller.scheduler_id, bus_message.value.clone()));
                         scheduler.execute_node_by_id(
                             node_id,
                             bus_message.value.clone(),
@@ -496,59 +537,38 @@ impl Scheduler {
                     let value = v8::Integer::new(scope, 42);
                     rv.set(value.into());
                 };
-                let getter_setter_key = v8::String::new(scope, &edge.field).unwrap().into();
+                let getter_setter_key = v8::String::new(scope, &edge.field).expect("Could not create getter/setter key").into();
                 object_template.set_accessor_with_setter(getter_setter_key, getter, setter);
 
-                fn set_key_value(
-                    scope: &mut v8::HandleScope<'_>,
-                    key: &str,
-                    value: &str,
-                    object_instance: v8::Local<'_, v8::Object>,
-                ) {
-                    let key_v8 = v8::String::new(scope, key).expect("Failed to create key string");
-                    let value_v8 =
-                        v8::String::new(scope, value).expect("Failed to create value string");
-                    object_instance
-                        .set(scope, key_v8.into(), value_v8.into())
-                        .expect("Failed to set property");
-                }
-                let object_instance: v8::Local<'_, v8::Object> =
-                    object_template.new_instance(scope).unwrap();
-                // println!("add to template: scheduler_id: {}", self.id);
-                set_key_value(scope, "schedulerId", &self.id.to_string(), object_instance);
-                set_key_value(scope, "nodeId", &node.id, object_instance);
-                set_key_value(scope, "graphId", &node.graph_id, object_instance);
-                set_key_value(scope, "connectorId", &connector.id, object_instance);
-                set_key_value(scope, "connectorField", &connector.field, object_instance);
-                set_key_value(
-                    scope,
-                    "connectorGraphId",
-                    &connector.graph_id,
-                    object_instance,
-                );
-                set_key_value(
-                    scope,
-                    "connectorNodeId",
-                    &connector.node_id,
-                    object_instance,
-                );
-                set_key_value(scope, "edgeField", &edge.field, object_instance);
-                set_key_value(scope, "field", &field, object_instance);
-                set_key_value(scope, "callerGraphId", &caller.graph_id, object_instance);
-                set_key_value(scope, "callerNodeId", &caller.node_id, object_instance);
-                set_key_value(scope, "callerSchedulerId", &caller.scheduler_id, object_instance);
-                let value_key = v8::String::new(scope, "value").unwrap();
-                let value_value = serde_json_to_v8(scope, &value);
+                let edges_object: v8::Local<'_, v8::Object> = object_template.new_instance(scope).expect("Could not create v8 object template");
                 let global = scope.get_current_context().global(scope);
-                let object_key = v8::String::new(scope, "edges").unwrap();
-                let try_set_val = global.set(scope, value_key.into(), value_value.into());
-                if try_set_val.is_some() {
-                    println!("Cannot set value because it is None");
-                    try_set_val.unwrap();
+
+                let mut objects = Vec::new();
+                objects.push(edges_object);
+                objects.push(global);
+                for obj in objects {
+                    // all of these values must be passed to the edge setter object for their use in the "this" object in the setter
+                    // this is key to transitioning the v8 setter boundary as you cannot refer to object instances in the setter
+                    // these values are also added to global for convenience
+                    Scheduler::set_key_value(scope, "schedulerId", &self.id.to_string(), obj);
+                    Scheduler::set_key_value(scope, "nodeId", &node.id, obj);
+                    Scheduler::set_key_value(scope, "graphId", &node.graph_id, obj);
+                    Scheduler::set_key_value(scope, "field", &field, obj);
+                    Scheduler::set_key_value(scope, "callerGraphId", &caller.graph_id, obj);
+                    Scheduler::set_key_value(scope, "callerNodeId", &caller.node_id, obj);
+                    Scheduler::set_key_value(scope, "callerSchedulerId", &caller.scheduler_id, obj);
+
+                    Scheduler::set_key_value(scope, "connectorId", &connector.id, obj);
+                    Scheduler::set_key_value(scope, "connectorField", &connector.field, obj);
+                    Scheduler::set_key_value(scope, "connectorGraphId", &connector.graph_id, obj);
+                    Scheduler::set_key_value(scope, "connectorNodeId", &connector.node_id, obj);
+                    Scheduler::set_key_value(scope, "edgeField", &edge.field, obj);
                 }
-                global
-                    .set(scope, object_key.into(), object_instance.into())
-                    .unwrap();
+
+                global.set(scope, edges_key.into(), edges_object.into()).expect("Could not set edges object into global scope");
+
+                Scheduler::log("edge: set scope", format!("graph_id: {}, node_id: {}, scheduler_id: {}, field: {}, caller_node_id: {}, caller_graph_id: {}, caller_scheduler_id: {}, value: {:?}", self.graph.id, node.id, self.id, field, caller.node_id, caller.graph_id, caller.scheduler_id, value));
+
                 self.event_emitter.emit(Event {
                     event_type: EventType::EndConnector,
                     data: serde_json::json!({
@@ -576,6 +596,32 @@ impl Scheduler {
                 }),
             });
         }
+
+        let global = scope.get_current_context().global(scope);
+
+        Scheduler::set_key_value(scope, "schedulerId", &self.id.to_string(), global);
+        Scheduler::set_key_value(scope, "nodeId", &node.id, global);
+        Scheduler::set_key_value(scope, "graphId", &node.graph_id, global);
+        Scheduler::set_key_value(scope, "field", &field, global);
+        Scheduler::set_key_value(scope, "callerGraphId", &caller.graph_id, global);
+        Scheduler::set_key_value(scope, "callerNodeId", &caller.node_id, global);
+        Scheduler::set_key_value(scope, "callerSchedulerId", &caller.scheduler_id, global);
+
+        // when there are no edges, supply an empty object called 'edges' to the interface
+        if connector_count == 0 {
+            let edges_object: v8::Local<'_, v8::Object> = object_template.new_instance(scope).expect("Could not create v8 object template");
+            global.set(scope, edges_key.into(), edges_object.into()).expect("Could not set edges object into global scope");
+        }
+
+        let value_key = v8::String::new(scope, "value").expect("Could not create value key");
+        let value_value = serde_json_to_v8(scope, &value);
+        let try_set_val = global.set(scope, value_key.into(), value_value.into());
+        if try_set_val.is_some() {
+            try_set_val.expect("Could not set value into global scope");
+        } else {
+            Scheduler::log("error", format!("Cannot set value because it is None"));
+        }
+
         self.event_emitter.emit(Event {
             event_type: EventType::Set,
             data: serde_json::json!({
@@ -585,16 +631,18 @@ impl Scheduler {
               "value": value,
             }),
         });
+
         let try_catch = &mut v8::TryCatch::new(scope);
-        let code = v8::String::new(try_catch, &node.template.set).unwrap();
+        Scheduler::log("JS run", format!("graph_id: {}, node_id: {}, scheduler_id: {}, code: {}", self.graph.id, node.id, self.id, node.template.set));
+        let code = v8::String::new(try_catch, &node.template.set).expect(&format!("Could not set JS code.  graph_id: {}, node_id: {}, scheduler_id: {}, code: {}", self.graph.id, node.id, self.id, node.template.set));
 
         // Attempt to compile the script
         let script = v8::Script::compile(try_catch, code, None);
 
         if script.is_none() && try_catch.has_caught() {
             // Compilation failed with an exception
-            let exception_string = try_catch.exception().unwrap().to_rust_string_lossy(try_catch);
-            println!("{} compile error {}", self.id, exception_string);
+            let exception_string = try_catch.exception().expect("Cannot extract v8 JS compilation exception reason").to_rust_string_lossy(try_catch);
+            Scheduler::log("Compile error", format!("graph_id: {}, node_id: {}, scheduler_id: {}, exception_string: {}", self.graph.id, node.id, self.id, exception_string));
             self.event_emitter.emit(Event {
                 event_type: EventType::Error,
                 data: serde_json::json!({
@@ -611,7 +659,7 @@ impl Scheduler {
             match result {
                 Some(result_str) => {
                     // Script execution succeeded
-                    println!("{} set result return {}", self.id, result_str.to_rust_string_lossy(try_catch));
+                    Scheduler::log("JS return", format!("graph_id: {}, node_id: {}, scheduler_id: {}, return: {}", self.graph.id, node.id, self.id, result_str.to_rust_string_lossy(try_catch)));
                     self.event_emitter.emit(Event {
                         event_type: EventType::AfterSet,
                         data: serde_json::json!({
@@ -625,8 +673,8 @@ impl Scheduler {
                 },
                 None => {
                     // Script execution failed with an exception
-                    let exception_string = try_catch.exception().unwrap().to_rust_string_lossy(try_catch);
-                    println!("{} set result error {}", self.id, exception_string);
+                    let exception_string = try_catch.exception().expect("Cannot extract v8 JS runtime exception reason").to_rust_string_lossy(try_catch);
+                    Scheduler::log("JS error", format!("graph_id: {}, node_id: {}, scheduler_id: {}, error: {}, error: {}", self.graph.id, node.id, self.id, exception_string, node.template.set));
                     self.event_emitter.emit(Event {
                         event_type: EventType::Error,
                         data: serde_json::json!({
@@ -645,6 +693,7 @@ impl Scheduler {
         let node_options: Option<&Node> = self.graph.nodes.iter().find(|&node| node.url == url);
         match node_options {
             Some(node) => {
+                Scheduler::log("url", format!("url: {}, graph_id: {}, node_id: {}, scheduler_id: {}, field: {}, value: {:?}", url, self.graph.id, node.id, self.id, field, value));
                 self.event_emitter.emit(Event {
                     event_type: EventType::Begin,
                     data: serde_json::json!({
@@ -658,7 +707,7 @@ impl Scheduler {
                 let root_caller = SchedulerCaller {
                     graph_id: self.graph.id.clone(),
                     scheduler_id: self.id.clone(),
-                    node_id: node.id.clone(),
+                    node_id: "".to_string(),
                 };
 
                 self.execute_node_by_id(node.id.clone(), value, field, root_caller);
@@ -673,6 +722,7 @@ impl Scheduler {
                 });
             }
             None => {
+                Scheduler::log("url: node not found", format!(".  url: {}, graph_id: {}, scheduler_id: {}, field: {}, value: {:?}", url, self.graph.id, self.id, field, value));
                 eprintln!("Cannot find node URL {}", url);
                 std::process::exit(1);
             }
@@ -680,39 +730,32 @@ impl Scheduler {
     }
 
     fn execute_node_by_id(&self, id: String, value: serde_json::Value, field: String, caller: SchedulerCaller) {
-        // find a node with the given URL
-        println!("id {}", id);
-        println!("graph {:?}", self.graph);
+        // an entry point node shows up as having no caller node
         let node_option: Option<&Node> = self.graph.nodes.iter().find(|&node| node.id == id);
         match node_option {
             Some(node) => {
+                Scheduler::log("execute_node_by_id", format!("id: {}, graph_id: {}, node_id: {}, scheduler_id: {}, field: {}, caller_node_id: {}, caller_graph_id: {}, caller_scheduler_id: {}, value: {:?}", id, self.graph.id, node.id, self.id, field, caller.node_id, caller.graph_id, caller.scheduler_id, value));
                 // if this is a linked node, then load the linked graph and invoke the linked graph here
                 if node.linked_graph.is_some() {
-                    let linked_graph = node.linked_graph.clone().unwrap();
-                    let full_linked_graph = get_graph_from_global_store(&linked_graph.id).unwrap();
-                    let scheduler = Scheduler::new(full_linked_graph.clone(), None);
-                    let proxy_field = linked_graph.fields.inputs.get(&field).unwrap();
-                    let entry_node_option:&Node = full_linked_graph.nodes.iter().find(|&node| node.id == proxy_field.id).unwrap();
-                    scheduler.url(entry_node_option.url.clone(), value, proxy_field.field.clone());
+                    let linked_graph = node.linked_graph.clone().expect("Could not extract linked graph from expected location");
+                    Scheduler::log("Linked Graph Info", format!("Linked Graph Id {}", linked_graph.id));
+                    let full_linked_graph = get_graph_from_global_store(&linked_graph.id).expect("Could not find linked graph in graph storage");
+                    let scheduler = Scheduler::new(full_linked_graph.clone(), Some(caller.scheduler_id.clone()));
+                    let is_unwinding = caller.graph_id == full_linked_graph.id;
+                    let outputs = linked_graph.fields.outputs;
+                    let inputs = linked_graph.fields.inputs;
+                    let proxy_field = if is_unwinding { outputs.get(&field).expect("Could not extract output fields") } else { inputs.get(&field).expect("Could not extract input fields") };
                     {
-                        let mut caller_guard = scheduler.caller.lock().unwrap();
-                        *caller_guard = caller;
+                        let mut caller_guard = scheduler.caller.lock().expect("Could not lock scheduler caller property to write new caller");
+                        *caller_guard = caller.clone();
                     }
+                    scheduler.execute_node_by_id(proxy_field.id.clone(), value, proxy_field.field.clone(), caller);
                     return;
                 }
-
-                // Create and return a new Isolate. Ownership is transferred to the caller.
-                let isolate = &mut v8::Isolate::new(v8::CreateParams::default());
-                // Directly create a handle scope with the owned isolate.
-                let handle_scope = &mut v8::HandleScope::new(isolate);
-                let context = v8::Context::new(handle_scope);
-                let scope: &mut v8::ContextScope<'_, v8::HandleScope<'_>> =
-                    &mut v8::ContextScope::new(handle_scope, context);
-                // Process messages after setting up V8 context and running scripts
-                println!("Traverse edge for scheduler_id {}", self.id);
-                self.edge(scope, node.clone(), value, field, caller);
+                self.edge(node.clone(), value, field, caller);
             }
             None => {
+                Scheduler::log("execute_node_by_id node not found", format!("id: {}, graph_id: {}, scheduler_id: {}, field: {}, caller_node_id: {}, caller_graph_id: {}, caller_scheduler_id: {}, value: {:?}", id, self.graph.id, self.id, field, caller.node_id, caller.graph_id, caller.scheduler_id, value));
                 eprintln!("Cannot find node ID {}", id);
                 std::process::exit(1);
             }
@@ -766,7 +809,6 @@ mod tests {
         let event = tokio::time::timeout(std::time::Duration::from_secs(5), rx.recv())
             .await.expect("Timeout waiting for event").expect("Channel closed unexpectedly");
         let value = event.data.get("return").and_then(serde_json::Value::as_str).expect("Could not find return key.");
-        // println!("{}", value);
         assert_eq!(value, "Hello, world from node2!", "Expected to see another value here.");
     }
 
@@ -858,6 +900,7 @@ mod tests {
         });
 
         let test_value = "foo";
+        let test_calculated_value = "foo bar";
 
         scheduler.url(
             "index".to_string(),
@@ -869,7 +912,37 @@ mod tests {
             .await.expect("Timeout waiting for event").expect("Channel closed unexpectedly");
         let value = event.data.get("return").and_then(serde_json::Value::as_str).expect("Could not find return key.");
         println!("{}", value);
-        assert_eq!(value, test_value, "Expected to see another value here.");
+        assert_eq!(value, test_calculated_value, "Expected to see another value here.");
+
+    }
+
+
+    #[tokio::test]
+    async fn async_linked_three_cycle_graph() {
+        let (tx, mut rx) = tokio::sync::mpsc::channel(1);
+
+        Scheduler::_load_graph_from_file("tests/fixtures/graphs/graph_three_cycle_step_three.json");
+        Scheduler::_load_graph_from_file("tests/fixtures/graphs/graph_three_cycle_step_two.json");
+        let graph = Scheduler::_load_graph_from_file("tests/fixtures/graphs/graph_three_cycle_step_one.json");
+        let scheduler = Scheduler::new(graph, None);
+
+        scheduler.event_emitter.subscribe(EventType::AfterSet, move |event| {
+            let _ = tx.try_send(event);
+        });
+
+        let test_value = "foo";
+        let test_calculated_value = "foo baz bar";
+
+        scheduler.url(
+            "index".to_string(),
+            serde_json::Value::String(test_value.to_string()),
+            "field".to_string(),
+        );
+
+        let event = tokio::time::timeout(std::time::Duration::from_secs(5), rx.recv())
+            .await.expect("Timeout waiting for event").expect("Channel closed unexpectedly");
+        let value = event.data.get("return").and_then(serde_json::Value::as_str).expect("Could not find return key.");
+        assert_eq!(value, test_calculated_value, "Expected to see another value here.");
 
     }
 
