@@ -1,17 +1,17 @@
 {
   "nodes": [
       {
-          "id": "1",
+          "id": "83311e82-9788-4669-b5cb-9967acce741f",
           "edges": [
               {
                   "field": "proxy",
                   "external": false,
                   "connectors": [
                       {
-                          "id": "0",
-                          "nodeId": "2",
+                          "id": "8dc03d7d-b745-47cf-a82b-d36dda721a3b",
+                          "nodeId": "8308a7e4-d1f3-4e3f-a51d-8f15166bfc8c",
                           "field": "proxy",
-                          "graphId": "0",
+                          "graphId": "bcaa588e-e4e4-4467-a298-842c1aa4b72b",
                           "version": 0,
                           "type": "normal"
                       }
@@ -19,7 +19,7 @@
               }
           ],
           "version": 0,
-          "graphId": "0",
+          "graphId": "bcaa588e-e4e4-4467-a298-842c1aa4b72b",
           "url": "index",
           "data": "",
           "properties": {},
@@ -28,19 +28,19 @@
           }
       },
       {
-          "id": "2",
+          "id": "8308a7e4-d1f3-4e3f-a51d-8f15166bfc8c",
           "edges": [],
           "version": 0,
-          "graphId": "0",
+          "graphId": "bcaa588e-e4e4-4467-a298-842c1aa4b72b",
           "url": "",
           "data": "",
           "properties": {},
           "template": {
-              "set": "value"
+              "set": "value + ' bar'"
           }
       }
   ],
-  "id": "0",
+  "id": "bcaa588e-e4e4-4467-a298-842c1aa4b72b",
   "url": "0",
   "version": 0,
   "properties": {

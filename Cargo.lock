@@ -386,6 +386,7 @@ dependencies = [
  "chrono",
  "clap",
  "lazy_static",
+ "libc",
  "rusty_v8",
  "serde",
  "serde_json",

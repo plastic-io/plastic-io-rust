@@ -4,7 +4,7 @@
       "id": "1",
       "edges": [
         {
-          "field": "proxy",
+          "field": "golf",
           "external": true,
           "connectors": [
             {
@@ -23,7 +23,7 @@
       "data": "",
       "properties": {},
       "template": {
-        "set": "edges.proxy = value + ' baz';"
+        "set": "edges.golf = value + ' baz';"
       }
     },
     {
@@ -47,7 +47,7 @@
   ],
   "id": "three",
   "version": 0,
-  "url": "",
+  "url": "tests/fixtures/graphs/graph_three_cycle_step_three.json",
   "properties": {
     "icon": "",
     "name": "",

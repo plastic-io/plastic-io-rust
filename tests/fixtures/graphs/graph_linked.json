@@ -1,29 +1,29 @@
 {
   "nodes": [
     {
-      "id": "1",
+      "id": "e991f62a-e383-4096-80f8-3630476cf7d1",
       "edges": [
         {
           "field": "proxy",
           "external": false,
           "connectors": [
             {
-              "id": "0",
-              "nodeId": "2",
+              "id": "3bfd1309-1e9b-4dd6-b128-1614b7a80067",
+              "nodeId": "a750ceb9-cc09-4ba6-ab7a-f3821d11c966",
               "field": "proxy",
-              "graphId": "0",
+              "graphId": "55ee4a36-0392-4329-8a18-1c3704d34339",
               "version": 0
             }
           ]
         }
       ],
       "version": 0,
-      "graphId": "0",
+      "graphId": "55ee4a36-0392-4329-8a18-1c3704d34339",
       "url": "index",
       "data": "",
       "properties": {
-        "name": "SerialGraph",
-        "description": "A graph with 3 nodes connected in series.",
+        "name": "",
+        "description": "",
         "createdBy": "Example Creator",
         "createdOn": "2024-02-12T00:00:00Z",
         "lastUpdate": "2024-02-12T00:00:00Z",
@@ -37,10 +37,10 @@
       }
     },
     {
-      "id": "2",
+      "id": "a750ceb9-cc09-4ba6-ab7a-f3821d11c966",
       "linkedGraph": {
-        "id": "1",
-        "url": "",
+        "id": "bcaa588e-e4e4-4467-a298-842c1aa4b72b",
+        "url": "tests/fixtures/graphs/graph_proxy_to_log.json",
         "version": 0,
         "properties": {},
         "loaded": false,
@@ -50,7 +50,7 @@
         "fields": {
           "inputs": {
             "proxy": {
-              "id": "2",
+              "id": "83311e82-9788-4669-b5cb-9967acce741f",
               "field": "proxy",
               "dataType": "string",
               "external": true
@@ -61,7 +61,7 @@
       },
       "edges": [],
       "version": 0,
-      "graphId": "0",
+      "graphId": "55ee4a36-0392-4329-8a18-1c3704d34339",
       "url": "index",
       "data": "",
       "properties": {},
@@ -70,7 +70,7 @@
       }
     }
   ],
-  "id": "0",
+  "id": "55ee4a36-0392-4329-8a18-1c3704d34339",
   "url": "",
   "version": 0,
   "properties": {

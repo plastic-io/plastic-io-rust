@@ -4,13 +4,13 @@
       "id": "1",
       "edges": [
         {
-          "field": "proxy",
+          "field": "delta",
           "external": false,
           "connectors": [
             {
               "id": "0",
               "nodeId": "3",
-              "field": "proxy",
+              "field": "echo",
               "graphId": "two",
               "version": 0
             }
@@ -23,7 +23,7 @@
       "data": "",
       "properties": {},
       "template": {
-        "set": "edges.proxy = value;"
+        "set": "edges.delta = value;"
       }
     },
     {
@@ -33,13 +33,13 @@
         "version": 0,
         "data": {},
         "properties": {},
-        "url": "",
+        "url": "tests/fixtures/graphs/graph_three_cycle_step_three.json",
         "loaded": false,
         "fields": {
           "inputs": {
-            "proxy": {
+            "echo": {
               "id": "1",
-              "field": "proxy",
+              "field": "foxtrot",
               "dataType": "string",
               "external": true
             }
@@ -93,7 +93,7 @@
   ],
   "id": "two",
   "version": 0,
-  "url": "",
+  "url": "tests/fixtures/graphs/graph_three_cycle_step_two.json",
   "properties": {
     "name": "",
     "description": "",

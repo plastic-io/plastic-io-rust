@@ -4,7 +4,7 @@
       "id": "1",
       "edges": [
         {
-          "field": "proxy",
+          "field": "delta",
           "external": true,
           "connectors": [
             {
@@ -23,7 +23,7 @@
       "data": "",
       "properties": {},
       "template": {
-        "set": "edges.proxy = value + ' bar';"
+        "set": "edges.delta = value + ' bar';"
       }
     },
     {

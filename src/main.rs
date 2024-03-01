@@ -1,4 +1,7 @@
 mod scheduler;
+mod utils;
+mod loader;
+mod types;
 use clap::Parser;
 
 // Graph parser

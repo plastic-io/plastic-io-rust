@@ -1,9 +1,9 @@
 {
   "id": "graph2",
-  "url": "",
+  "url": "foo",
   "nodes": [],
   "properties": {
-    "name": "foo",
+    "name": "",
     "description": "",
     "createdBy": "",
     "createdOn": "2024-02-11T00:47:33Z",
