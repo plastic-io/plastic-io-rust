@@ -24,12 +24,12 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    match scheduler::parse_graph(&args.graph) {
+    match loader::parse_graph(&args.graph) {
         Ok(graph) => {
-            let scheduler = scheduler::Scheduler::new(graph, None);
+            let scheduler = types::Scheduler::new(graph, None);
             scheduler
             .event_emitter
-            .subscribe(scheduler::EventType::AfterSet, |event| {
+            .subscribe(types::EventType::AfterSet, |event| {
                 let data = &event.data;
                     if let Some(return_value) = data.get("return") {
                         print!("{}", return_value);
