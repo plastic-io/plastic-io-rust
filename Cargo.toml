@@ -1,5 +1,5 @@
 [package]
-name = "plastic_io"
+name = "plastic-io"
 version = "0.1.0"
 edition = "2021"
 
