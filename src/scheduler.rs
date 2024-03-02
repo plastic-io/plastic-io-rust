@@ -161,9 +161,6 @@ impl Scheduler {
                             "connectorGraphId",
                             "connectorNodeId",
                             "connectorVersion",
-                            "callerNodeId",
-                            "callerGraphId",
-                            "callerSchedulerId",
                             "edgeField",
                         ];
                         // Initialize a BusMessage with empty or default values
@@ -178,17 +175,13 @@ impl Scheduler {
                             connector_graph_id: String::new(),
                             connector_node_id: String::new(),
                             edge_field: String::new(),
-                            caller_graph_id: String::new(),
-                            caller_node_id: String::new(),
-                            caller_scheduler_id: String::new(),
                         };
                         // Iterate over property names and fetch their values from the V8 object
                         for &property_name in &property_names {
                             let v8_prop_name =
                                 v8::String::new(scope, property_name).expect("Failed to set edge properties").into();
-                            if let Some(property_value) = this
-                                .get(scope, v8_prop_name)
-                                .and_then(|v| v.to_string(scope))
+                            if let Some(property_value) =
+                                this.get(scope, v8_prop_name).and_then(|v| v.to_string(scope))
                             {
                                 let property_str = property_value.to_rust_string_lossy(scope);
                                 // Match property names to fields in BusMessage and assign values
@@ -199,15 +192,8 @@ impl Scheduler {
                                     "field" => bus_message.field = property_str,
                                     "connectorId" => bus_message.connector_id = property_str,
                                     "connectorField" => bus_message.connector_field = property_str,
-                                    "callerGraphId" => bus_message.caller_graph_id = property_str,
-                                    "callerNodeId" => bus_message.caller_node_id = property_str,
-                                    "callerSchedulerId" => bus_message.caller_scheduler_id = property_str,
-                                    "connectorGraphId" => {
-                                        bus_message.connector_graph_id = property_str
-                                    }
-                                    "connectorNodeId" => {
-                                        bus_message.connector_node_id = property_str
-                                    }
+                                    "connectorGraphId" => bus_message.connector_graph_id = property_str,
+                                    "connectorNodeId" => bus_message.connector_node_id = property_str,
                                     "edgeField" => bus_message.edge_field = property_str,
                                     _ => {} // Handle unexpected properties if necessary
                                 }
@@ -221,7 +207,14 @@ impl Scheduler {
                         let graph_id = bus_message.graph_id.clone();
                         let graph = get_graph_from_global_store(&graph_id).expect(&format!("Could not load next graph. graph_id: {}", graph_id));
                         let scheduler = Scheduler::new(graph.clone(), Some(bus_message.scheduler_id.clone()));
-                        scheduler.traverse_edge(bus_message);
+                        let node_id = bus_message.connector_node_id.clone();
+                        let target_field = bus_message.connector_field.clone();
+                        log("edge connector invoke", format!("graph_id: {}, from_node_id: {}, to_node_id: {}, from_field: {}, to_field: {}, value: {:?}, scheduler_id: {}", bus_message.graph_id, bus_message.node_id, node_id, bus_message.edge_field, target_field, bus_message.value.clone(), bus_message.scheduler_id));
+                        scheduler.execute_node_by_id(
+                            node_id,
+                            bus_message.value.clone(),
+                            target_field
+                        );
                     };
                 let getter = |scope: &mut v8::HandleScope<'_>,
                               _: v8::Local<'_, v8::Name>,
@@ -373,16 +366,6 @@ impl Scheduler {
                 },
             }
         }
-    }
-    pub fn traverse_edge(&self, bus_message: BusMessage) {
-        let node_id = bus_message.connector_node_id.clone();
-        let target_field = bus_message.connector_field.clone();
-        log("edge connector invoke", format!("graph_id: {}, from_node_id: {}, to_node_id: {}, from_field: {}, to_field: {}, value: {:?}, scheduler_id: {}", bus_message.graph_id, bus_message.node_id, node_id, bus_message.edge_field, target_field, bus_message.value.clone(), bus_message.scheduler_id));
-        self.execute_node_by_id(
-            node_id,
-            bus_message.value.clone(),
-            target_field
-        );
     }
     pub fn url(&self, url: String, value: serde_json::Value, field: String) {
         let node_options: Option<&Node> = self.graph.nodes.iter().find(|&node| node.url == url);

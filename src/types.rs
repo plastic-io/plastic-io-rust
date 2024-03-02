@@ -42,9 +42,6 @@ pub struct BusMessage {
     pub connector_graph_id: String,
     pub connector_node_id: String,
     pub edge_field: String,
-    pub caller_graph_id: String,
-    pub caller_node_id: String,
-    pub caller_scheduler_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
