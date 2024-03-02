@@ -1,4 +1,5 @@
 pub mod scheduler;
 pub mod loader;
 pub mod types;
-mod utils;
+pub mod event_emitter;
+pub mod utils;

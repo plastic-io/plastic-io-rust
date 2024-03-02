@@ -10,7 +10,7 @@ lazy_static! {
   static ref GRAPHS: GlobalGraphs = Mutex::new(HashMap::new());
 }
 
-pub fn cache_set(graph: Graph) {
+pub fn set_graph_to_global_store(graph: Graph) {
   let mut graphs = GRAPHS.lock().expect("Could not lock global graph cache.");
   graphs.insert(graph.id.clone(), graph.clone());
 }
@@ -19,7 +19,6 @@ pub fn get_graph_from_global_store(id: &str) -> Option<Graph> {
   let graphs = GRAPHS.lock().expect("Could not lock global graph store.");
   graphs.get(id).cloned()
 }
-
 
 pub fn parse_graph(json_str: &str) -> Result<Graph, serde_json::Error> {
   serde_json::from_str(json_str)
@@ -38,7 +37,7 @@ fn load_and_integrate_linked_graphs_with_fields(graph: &mut Graph, base_path: &s
     if let Some(linked_graph) = node.linked_graph.take() { // Temporarily take ownership
       // Construct the path to the linked graph
       let path = linked_graph.url;
-      let mut loaded_graph = load_graph_from_file(&path);
+      let mut loaded_graph = file(&path);
       // locate the nodes connecting to the host nodes inputs
       // and change those connectors so they are connecting to
       // the inner graph's inputs
@@ -78,14 +77,24 @@ fn load_and_integrate_linked_graphs_with_fields(graph: &mut Graph, base_path: &s
   global_nodes.append(&mut graph.nodes);
 }
 
-pub fn load_graph_from_file(path: &str) -> Graph {
+pub fn json(graph_string: &str) -> Graph {
+  log("json", format!("graph_string: {}", graph_string));
+  let mut graph = parse_graph(&graph_string)
+      .expect("Error parsing JSON into Graph");
+  integrate_linked_graphs_with_fields(&mut graph, "");
+  set_graph_to_global_store(graph.clone());
+  return graph;
+}
+
+
+pub fn file(path: &str) -> Graph {
   log("load_graph_from_file", format!("path: {}", path));
   let graph_string = std::fs::read_to_string(path)
       .expect("Failed to read test data file");
   let mut graph = parse_graph(&graph_string)
       .expect("Error parsing JSON into Graph");
   integrate_linked_graphs_with_fields(&mut graph, "");
-  cache_set(graph.clone());
+  set_graph_to_global_store(graph.clone());
   return graph;
 }
 

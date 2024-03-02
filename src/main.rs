@@ -2,13 +2,18 @@ mod scheduler;
 mod utils;
 mod loader;
 mod types;
+mod event_emitter;
 use clap::Parser;
+use utils::set_verbosity;
 use crate::types::Graph;
 
 // Graph parser
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
+    /// Log verbosity
+    #[arg(short, long, default_value = "0")]
+    verbosity: u32,
     /// Graph path
     #[arg(short, long, default_value = "")]
     path: String,
@@ -16,7 +21,7 @@ struct Args {
     #[arg(short, long, default_value = "")]
     graph: String,
     /// Node URL Entrypoint
-    #[arg(short, long, default_value = "main")]
+    #[arg(short, long, default_value = "index")]
     url: String,
     /// Value to pass entrypoint node
     #[arg(short, long, default_value = "")]
@@ -28,10 +33,13 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
+
+    set_verbosity(args.verbosity);
+
     let graph: Graph = if &args.graph.len() > &0 {
-        loader::parse_graph(&args.graph).expect("Error parsing graph JSON")
+        loader::json(&args.graph)
     } else if &args.path.len() > &0 {
-        loader::load_graph_from_file(&args.path)
+        loader::file(&args.path)
     } else {
         println!("No graph source defined.  You must define either --path or --graph.");
         return;

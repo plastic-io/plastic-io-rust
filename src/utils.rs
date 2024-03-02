@@ -5,15 +5,27 @@ use std::sync::{Arc, Mutex};
 
 lazy_static! {
   static ref SEQUENCE_COUNTER: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
+  static ref LOG_VERBOSITY: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
 }
 
 pub fn log(category: &str, msg: String) {
+  if get_verbosity() == 0 { return; }
   println!("------------------------------------------------------------------------------------------------------------");
   println!("{}", category);
   println!("Sequence: {}", get_seq_count());
   println!("{}", msg.replace(",", "\n"));
 }
 
+pub fn set_verbosity(level: u32) {
+    let mut v = LOG_VERBOSITY.lock().expect("Can't lock log verbosity.");
+    *v = level;
+}
+
+
+pub fn get_verbosity() -> u32 {
+    let v = LOG_VERBOSITY.lock().expect("Can't lock log verbosity.");
+    return v.clone();
+}
 
 pub fn increment_sequence_counter() {
   let mut sequence_counter = SEQUENCE_COUNTER.lock().expect("Could not lock sequence number");

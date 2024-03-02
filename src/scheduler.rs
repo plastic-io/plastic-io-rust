@@ -1,69 +1,16 @@
-use lazy_static::lazy_static;
 use rusty_v8 as v8;
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex, Once};
-use std::thread::{self, JoinHandle};
+use std::sync::{Arc, Once};
 use uuid::Uuid;
 use crate::utils::{serde_json_to_v8, v8_value_to_serde_json, log, increment_sequence_counter};
-use crate::loader::{get_graph_from_global_store, cache_set};
+use crate::loader::get_graph_from_global_store;
 use crate::types::*;
+use crate::event_emitter::EVENT_EMITTERS;
 
 static V8_INIT: Once = Once::new();
-
-type GlobalEventEmitters = Arc<Mutex<HashMap<String, Arc<EventEmitter>>>>;
-
-lazy_static! {
-    static ref EVENT_EMITTERS: GlobalEventEmitters = Arc::new(Mutex::new(HashMap::new()));
-
-}
-
-impl EventEmitter {
-    pub fn new() -> Self {
-        EventEmitter {
-            subscribers: Arc::new(Mutex::new(HashMap::new())),
-        }
-    }
-
-    pub fn subscribe<F>(&self, event_type: EventType, callback: F)
-    where
-        F: Fn(Event) + 'static + Send + Sync,
-    {
-        let mut subscribers = self.subscribers.lock().expect("Could not lock subscribers hashmap");
-        subscribers
-            .entry(event_type)
-            .or_insert_with(Vec::new)
-            .push(Arc::new(callback));
-    }
-
-    pub fn emit(&self, event: Event) {
-        let subscribers = self.subscribers.lock().expect("Could not lock subscribers hashmap");
-        if let Some(callbacks) = subscribers.get(&event.event_type) {
-            let mut handles: Vec<JoinHandle<()>> = Vec::new();
-
-            for callback in callbacks.iter().cloned() {
-                // Clone the Arc<dyn Fn(Event) + Send + Sync>
-                let event_clone = event.clone();
-                // Spawn the thread and store its JoinHandle
-                let handle = thread::spawn(move || {
-                    callback(event_clone);
-                });
-                handles.push(handle);
-            }
-
-            // Wait for all threads to complete
-            for handle in handles {
-                handle.join().expect("Thread panicked");
-            }
-        }
-    }
-}
 
 impl Scheduler {
     pub fn new(graph: Graph, scheduler_id: Option<String>) -> Self {
         Scheduler::initialize_v8();
-
-        cache_set(graph.clone());
-
         let id = scheduler_id.unwrap_or_else(|| Uuid::new_v4().to_string());
         let mut event_emitters = EVENT_EMITTERS.lock().expect("Could not lock global event emitter hash map");
         let emitter = event_emitters.entry(id.clone())
@@ -73,7 +20,7 @@ impl Scheduler {
         Self {
             event_emitter: emitter,
             graph,
-            id
+            id,
         }
     }
 
@@ -420,20 +367,22 @@ impl Scheduler {
 
 #[cfg(test)]
 mod tests {
-    use crate::loader::load_graph_from_file;
+    use crate::loader::file;
+    use crate::utils::set_verbosity;
     use super::*;
 
     #[test]
     fn minimal_viable_graph() {
-        let graph = load_graph_from_file("tests/fixtures/graphs/graph_minimal.json");
+        let graph = file("tests/fixtures/graphs/graph_minimal.json");
         let scheduler = Scheduler::new(graph, None);
+        set_verbosity(u32::max_value());
         assert_eq!(scheduler.graph.url, "foo", "The graph url did not match 'foo'");
     }
 
     #[tokio::test]
     async fn single_node_js_invoke() {
         let (tx, mut rx) = tokio::sync::mpsc::channel(1);
-        let graph = load_graph_from_file("tests/fixtures/graphs/graph_with_one_js_test.json");
+        let graph = file("tests/fixtures/graphs/graph_with_one_js_test.json");
         let scheduler = Scheduler::new(graph, None);
         scheduler.event_emitter.subscribe(EventType::AfterSet, move |event| {
             let _ = tx.try_send(event);
@@ -452,7 +401,7 @@ mod tests {
     #[tokio::test]
     async fn graph_with_edge() {
         let (tx, mut rx) = tokio::sync::mpsc::channel(1);
-        let graph = load_graph_from_file("tests/fixtures/graphs/graph_with_edge.json");
+        let graph = file("tests/fixtures/graphs/graph_with_edge.json");
         let scheduler = Scheduler::new(graph, None);
         scheduler.event_emitter.subscribe(EventType::AfterSet, move |event| {
             let _ = tx.try_send(event);
@@ -471,7 +420,7 @@ mod tests {
     #[tokio::test]
     async fn graph_with_two_edges() {
         let (tx, mut rx) = tokio::sync::mpsc::channel(1);
-        let graph = load_graph_from_file("tests/fixtures/graphs/graph_with_two_edges.json");
+        let graph = file("tests/fixtures/graphs/graph_with_two_edges.json");
         let scheduler = Scheduler::new(graph, None);
         scheduler.event_emitter.subscribe(EventType::AfterSet, move |event| {
             let _ = tx.try_send(event);
@@ -484,7 +433,6 @@ mod tests {
         let event = tokio::time::timeout(std::time::Duration::from_secs(5), rx.recv())
             .await.expect("Timeout waiting for event").expect("Channel closed unexpectedly");
         let value = event.data.get("return").and_then(serde_json::Value::as_str).expect("Could not find return key.");
-        println!("{}", value);
         assert_eq!(value, "End of the line. Data processed in Node3.", "Expected to see another value here.");
     }
 
@@ -492,7 +440,7 @@ mod tests {
     async fn async_graph_with_two_edges_then_error() {
         let (tx, mut rx) = tokio::sync::mpsc::channel(1);
 
-        let graph = load_graph_from_file("tests/fixtures/graphs/graph_with_two_edges_then_error.json");
+        let graph = file("tests/fixtures/graphs/graph_with_two_edges_then_error.json");
         let scheduler = Scheduler::new(graph, None);
 
         scheduler.event_emitter.subscribe(EventType::Error, move |event| {
@@ -519,7 +467,7 @@ mod tests {
     async fn async_linked_graph() {
         let (tx, mut rx) = tokio::sync::mpsc::channel(1);
 
-        let graph = load_graph_from_file("tests/fixtures/graphs/graph_linked.json");
+        let graph = file("tests/fixtures/graphs/graph_linked.json");
         let scheduler = Scheduler::new(graph, None);
 
         scheduler.event_emitter.subscribe(EventType::AfterSet, move |event| {
@@ -538,7 +486,6 @@ mod tests {
         let event = tokio::time::timeout(std::time::Duration::from_secs(5), rx.recv())
             .await.expect("Timeout waiting for event").expect("Channel closed unexpectedly");
         let value = event.data.get("return").and_then(serde_json::Value::as_str).expect("Could not find return key.");
-        println!("{}", value);
         assert_eq!(value, test_return_value, "Expected to see another value here.");
 
     }
@@ -547,7 +494,7 @@ mod tests {
     async fn async_linked_cycle_graph() {
         let (tx, mut rx) = tokio::sync::mpsc::channel(1);
 
-        let graph = load_graph_from_file("tests/fixtures/graphs/graph_cycle_outer.json");
+        let graph = file("tests/fixtures/graphs/graph_cycle_outer.json");
         let scheduler = Scheduler::new(graph, None);
 
         scheduler.event_emitter.subscribe(EventType::AfterSet, move |event| {
@@ -566,7 +513,6 @@ mod tests {
         let event = tokio::time::timeout(std::time::Duration::from_secs(5), rx.recv())
             .await.expect("Timeout waiting for event").expect("Channel closed unexpectedly");
         let value = event.data.get("return").and_then(serde_json::Value::as_str).expect("Could not find return key.");
-        println!("{}", value);
         assert_eq!(value, test_calculated_value, "Expected to see another value here.");
 
     }
@@ -575,7 +521,7 @@ mod tests {
     async fn async_linked_three_cycle_graph() {
         let (tx, mut rx) = tokio::sync::mpsc::channel(1);
 
-        let graph = load_graph_from_file("tests/fixtures/graphs/graph_three_cycle_step_one.json");
+        let graph = file("tests/fixtures/graphs/graph_three_cycle_step_one.json");
         let scheduler = Scheduler::new(graph, None);
 
         scheduler.event_emitter.subscribe(EventType::AfterSet, move |event| {
