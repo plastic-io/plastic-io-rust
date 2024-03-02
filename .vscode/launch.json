@@ -7,16 +7,16 @@
     {
       "type": "lldb",
       "request": "launch",
-      "name": "Debug unit tests in library 'plastic_io'",
+      "name": "Debug unit tests in library 'plastic-io'",
       "cargo": {
         "args": [
           "test",
           "--no-run",
           "--lib",
-          "--package=plastic_io"
+          "--package=plastic-io"
         ],
         "filter": {
-          "name": "plastic_io",
+          "name": "plastic-io",
           "kind": "lib"
         }
       },
@@ -26,15 +26,15 @@
     {
       "type": "lldb",
       "request": "launch",
-      "name": "Debug executable 'plastic_io'",
+      "name": "Debug executable 'plastic-io'",
       "cargo": {
         "args": [
           "build",
-          "--bin=plastic_io",
-          "--package=plastic_io"
+          "--bin=plastic-io",
+          "--package=plastic-io"
         ],
         "filter": {
-          "name": "plastic_io",
+          "name": "plastic-io",
           "kind": "bin"
         }
       },
@@ -44,16 +44,16 @@
     {
       "type": "lldb",
       "request": "launch",
-      "name": "Debug unit tests in executable 'plastic_io'",
+      "name": "Debug unit tests in executable 'plastic-io'",
       "cargo": {
         "args": [
           "test",
           "--no-run",
-          "--bin=plastic_io",
-          "--package=plastic_io"
+          "--bin=plastic-io",
+          "--package=plastic-io"
         ],
         "filter": {
-          "name": "plastic_io",
+          "name": "plastic-io",
           "kind": "bin"
         }
       },
