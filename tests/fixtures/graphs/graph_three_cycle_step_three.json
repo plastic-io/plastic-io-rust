@@ -1,24 +1,24 @@
 {
   "nodes": [
     {
-      "id": "1",
+      "id": "92252777-aabf-42ac-99b6-917116202bb9",
       "edges": [
         {
           "field": "golf",
-          "external": true,
+          "external": false,
           "connectors": [
             {
               "id": "0",
-              "nodeId": "2",
-              "field": "proxy",
-              "graphId": "three",
+              "nodeId": "2cdab2ad-1e49-4bf8-ad42-5650ada10faf",
+              "field": "hotel",
+              "graphId": "4d4f2b85-fdd3-49cd-8d15-01157afae94a",
               "version": 0
             }
           ]
         }
       ],
       "version": 0,
-      "graphId": "three",
+      "graphId": "4d4f2b85-fdd3-49cd-8d15-01157afae94a",
       "url": "index",
       "data": "",
       "properties": {},
@@ -27,25 +27,25 @@
       }
     },
     {
-      "id": "2",
+      "id": "2cdab2ad-1e49-4bf8-ad42-5650ada10faf",
       "edges": [
         {
-          "field": "proxy",
-          "external": false,
+          "field": "indigo",
+          "external": true,
           "connectors": []
         }
       ],
       "version": 0,
-      "graphId": "three",
-      "url": "indexz",
+      "graphId": "4d4f2b85-fdd3-49cd-8d15-01157afae94a",
+      "url": "",
       "data": "",
       "properties": {},
       "template": {
-        "set": "edges.proxy = value + ' bar';"
+        "set": "edges.indigo = value + ' bar';"
       }
     }
   ],
-  "id": "three",
+  "id": "4d4f2b85-fdd3-49cd-8d15-01157afae94a",
   "version": 0,
   "url": "tests/fixtures/graphs/graph_three_cycle_step_three.json",
   "properties": {

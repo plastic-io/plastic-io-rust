@@ -129,7 +129,6 @@ impl Scheduler {
                   "value": value,
                 }),
             });
-            log("edge connectors", format!("graph_id: {}, node_id: {}, scheduler_id: {}, field: {}", self.graph.id, node.id, self.id, field));
             for connector in &edge.connectors {
                 connector_count += 1;
                 self.event_emitter.emit(Event {
@@ -246,7 +245,7 @@ impl Scheduler {
                     // these values are also added to global for convenience
                     Scheduler::set_key_value(scope, "schedulerId", &self.id.to_string(), obj);
                     Scheduler::set_key_value(scope, "nodeId", &node.id, obj);
-                    Scheduler::set_key_value(scope, "graphId", &node.graph_id, obj);
+                    Scheduler::set_key_value(scope, "graphId", &self.graph.id, obj);
                     Scheduler::set_key_value(scope, "field", &field, obj);
 
                     Scheduler::set_key_value(scope, "connectorId", &connector.id, obj);
@@ -257,8 +256,6 @@ impl Scheduler {
                 }
 
                 global.set(scope, edges_key.into(), edges_object.into()).expect("Could not set edges object into global scope");
-
-                log("edge: set scope", format!("graph_id: {}, node_id: {}, scheduler_id: {}, field: {}, value: {:?}", self.graph.id, node.id, self.id, field, value));
 
                 self.event_emitter.emit(Event {
                     event_type: EventType::EndConnector,
@@ -380,7 +377,7 @@ impl Scheduler {
     pub fn traverse_edge(&self, bus_message: BusMessage) {
         let node_id = bus_message.connector_node_id.clone();
         let target_field = bus_message.connector_field.clone();
-        log("edge connector invoke", format!("graph_id: {}, node_id: {}, scheduler_id: {}, target_field: {}, value: {:?}", bus_message.graph_id, node_id, bus_message.scheduler_id, target_field, bus_message.value.clone()));
+        log("edge connector invoke", format!("graph_id: {}, from_node_id: {}, to_node_id: {}, from_field: {}, to_field: {}, value: {:?}, scheduler_id: {}", bus_message.graph_id, bus_message.node_id, node_id, bus_message.edge_field, target_field, bus_message.value.clone(), bus_message.scheduler_id));
         self.execute_node_by_id(
             node_id,
             bus_message.value.clone(),
@@ -415,7 +412,7 @@ impl Scheduler {
                 });
             }
             None => {
-                log("url: node not found", format!(".  url: {}, graph_id: {}, scheduler_id: {}, field: {}, value: {:?}", url, self.graph.id, self.id, field, value));
+                log("edge: node not found", format!(".  url: {}, graph_id: {}, scheduler_id: {}, field: {}, value: {:?}", url, self.graph.id, self.id, field, value));
                 eprintln!("Cannot find node URL {}", url);
                 std::process::exit(1);
             }
@@ -427,7 +424,6 @@ impl Scheduler {
         let node_option: Option<&Node> = self.graph.nodes.iter().find(|&node| node.id == id);
         match node_option {
             Some(node) => {
-                log("execute_node_by_id", format!("id: {}, graph_id: {}, node_id: {}, scheduler_id: {}, field: {}, value: {:?}", id, self.graph.id, node.id, self.id, field, value));
                 self.edge(node.clone(), value, field);
             }
             None => {
@@ -576,7 +572,7 @@ mod tests {
         });
 
         let test_value = "foo";
-        let test_calculated_value = "foo bar";
+        let test_calculated_value = "foxtrot foo bar";
 
         scheduler.url(
             "index".to_string(),
@@ -604,7 +600,7 @@ mod tests {
         });
 
         let test_value = "foo";
-        let test_calculated_value = "foo baz bar";
+        let test_calculated_value = "oscar foo baz bar zaz";
 
         scheduler.url(
             "index".to_string(),

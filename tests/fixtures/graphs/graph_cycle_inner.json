@@ -1,7 +1,7 @@
 {
   "nodes": [
     {
-      "id": "1",
+      "id": "86c4e1de-adb2-4376-8938-f0ed4432a550",
       "edges": [
         {
           "field": "delta",
@@ -9,43 +9,45 @@
           "connectors": [
             {
               "id": "0",
-              "nodeId": "2",
-              "field": "proxy",
-              "graphId": "inner",
+              "nodeId": "e4431ec2-3e67-4a84-a9cf-76fbc434ddaa",
+              "field": "hotel",
+              "graphId": "eb03093a-15c4-456b-9c37-dab50648d903",
               "version": 0
             }
           ]
         }
       ],
       "version": 0,
-      "graphId": "inner",
+      "graphId": "eb03093a-15c4-456b-9c37-dab50648d903",
       "url": "index",
       "data": "",
-      "properties": {},
+      "properties": {
+        "description": "This is the first inner node on the inner graph that gets hit.  This will then send a message to the next node."
+      },
       "template": {
         "set": "edges.delta = value + ' bar';"
       }
     },
     {
-      "id": "2",
+      "id": "e4431ec2-3e67-4a84-a9cf-76fbc434ddaa",
       "edges": [
         {
-          "field": "proxy",
+          "field": "indigo",
           "external": false,
           "connectors": []
         }
       ],
       "version": 0,
-      "graphId": "inner",
+      "graphId": "eb03093a-15c4-456b-9c37-dab50648d903",
       "url": "index2",
       "data": "",
       "properties": {},
       "template": {
-        "set": "edges.proxy = value;"
+        "set": "edges.indigo = value;"
       }
     }
   ],
-  "id": "inner",
+  "id": "eb03093a-15c4-456b-9c37-dab50648d903",
   "version": 0,
   "url": "",
   "properties": {

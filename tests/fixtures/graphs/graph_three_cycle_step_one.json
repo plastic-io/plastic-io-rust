@@ -1,7 +1,7 @@
 {
   "nodes": [
     {
-      "id": "1",
+      "id": "e2cacfa4-3a5b-41e5-a67e-0ef7ee7bc399",
       "edges": [
         {
           "field": "alpha",
@@ -9,16 +9,16 @@
           "connectors": [
             {
               "id": "0",
-              "nodeId": "3",
+              "nodeId": "1650bf27-48c7-4dad-bb59-efd96018c64f",
               "field": "bravo",
-              "graphId": "one",
+              "graphId": "9586a054-8c33-4092-93c0-9c26624d20c6",
               "version": 0
             }
           ]
         }
       ],
       "version": 0,
-      "graphId": "one",
+      "graphId": "9586a054-8c33-4092-93c0-9c26624d20c6",
       "url": "index",
       "data": "",
       "properties": {},
@@ -27,7 +27,7 @@
       }
     },
     {
-      "id": "3",
+      "id": "1650bf27-48c7-4dad-bb59-efd96018c64f",
       "linkedGraph": {
         "id": "two",
         "version": 0,
@@ -38,16 +38,16 @@
         "fields": {
           "inputs": {
             "bravo": {
-              "id": "1",
+              "id": "e6bdf9c3-ca56-408b-966d-59b6fbd33baa",
               "field": "charlie",
               "dataType": "string",
               "external": true
             }
           },
           "outputs": {
-            "proxy": {
-              "id": "2",
-              "field": "proxy",
+            "lima": {
+              "id": "f0e0fc3e-3d54-4446-aca7-b4fe71bbae15",
+              "field": "mike",
               "dataType": "string",
               "external": true
             }
@@ -56,21 +56,21 @@
       },
       "edges": [
         {
-          "field": "proxy",
+          "field": "lima",
           "external": false,
           "connectors": [
             {
               "id": "0",
-              "nodeId": "2",
-              "field": "proxy",
-              "graphId": "one",
+              "nodeId": "a6da4afc-458c-4d98-a7a6-cf13fbdf2eee",
+              "field": "oscar",
+              "graphId": "9586a054-8c33-4092-93c0-9c26624d20c6",
               "version": 0
             }
           ]
         }
       ],
       "version": 0,
-      "graphId": "one",
+      "graphId": "9586a054-8c33-4092-93c0-9c26624d20c6",
       "url": "",
       "data": "",
       "properties": {},
@@ -79,19 +79,19 @@
       }
     },
     {
-      "id": "2",
+      "id": "a6da4afc-458c-4d98-a7a6-cf13fbdf2eee",
       "edges": [],
       "version": 0,
-      "graphId": "one",
+      "graphId": "9586a054-8c33-4092-93c0-9c26624d20c6",
       "url": "",
       "data": "",
       "properties": {},
       "template": {
-        "set": "value"
+        "set": "`${field} ${value}`"
       }
     }
   ],
-  "id": "one",
+  "id": "9586a054-8c33-4092-93c0-9c26624d20c6",
   "version": 0,
   "url": "",
   "properties": {

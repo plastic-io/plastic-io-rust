@@ -9,27 +9,29 @@
           "connectors": [
             {
               "id": "0",
-              "nodeId": "3",
+              "nodeId": "0dab9f5c-ed87-430f-8417-669c72f0b623",
               "field": "bravo",
-              "graphId": "outer",
+              "graphId": "f7adb6b7-9291-43aa-9004-99f24fc097a5",
               "version": 0
             }
           ]
         }
       ],
       "version": 0,
-      "graphId": "outer",
+      "graphId": "f7adb6b7-9291-43aa-9004-99f24fc097a5",
       "url": "index",
       "data": "",
-      "properties": {},
+      "properties": {
+        "description": "Cyclic linked graph starts here"
+      },
       "template": {
         "set": "edges.alpha = value;"
       }
     },
     {
-      "id": "3",
+      "id": "0dab9f5c-ed87-430f-8417-669c72f0b623",
       "linkedGraph": {
-        "id": "inner",
+        "id": "eb03093a-15c4-456b-9c37-dab50648d903",
         "version": 0,
         "data": {},
         "properties": {},
@@ -38,16 +40,16 @@
         "fields": {
           "inputs": {
             "bravo": {
-              "id": "1",
+              "id": "86c4e1de-adb2-4376-8938-f0ed4432a550",
               "field": "charlie",
               "dataType": "string",
               "external": true
             }
           },
           "outputs": {
-            "proxy": {
-              "id": "2",
-              "field": "proxy",
+            "golf": {
+              "id": "e4431ec2-3e67-4a84-a9cf-76fbc434ddaa",
+              "field": "indigo",
               "dataType": "string",
               "external": true
             }
@@ -56,42 +58,46 @@
       },
       "edges": [
         {
-          "field": "proxy",
+          "field": "golf",
           "external": false,
           "connectors": [
             {
               "id": "0",
-              "nodeId": "2",
-              "field": "proxy",
-              "graphId": "outer",
+              "nodeId": "5b07b419-d62b-4a2d-9974-fad1666ef9db",
+              "field": "foxtrot",
+              "graphId": "f7adb6b7-9291-43aa-9004-99f24fc097a5",
               "version": 0
             }
           ]
         }
       ],
       "version": 0,
-      "graphId": "outer",
-      "url": "index",
+      "graphId": "f7adb6b7-9291-43aa-9004-99f24fc097a5",
+      "url": "",
       "data": "",
-      "properties": {},
+      "properties": {
+        "description": "Next step is the first linked node.  This node hosts the linked graph and acts as a proxy with its input/output fields in the linked graph property."
+      },
       "template": {
         "set": ""
       }
     },
     {
-      "id": "2",
+      "id": "5b07b419-d62b-4a2d-9974-fad1666ef9db",
       "edges": [],
       "version": 0,
-      "graphId": "outer",
+      "graphId": "f7adb6b7-9291-43aa-9004-99f24fc097a5",
       "url": "",
       "data": "",
-      "properties": {},
+      "properties": {
+        "description": "After the inner graph cycles it will lead back to this node, we will use the field + value as proof of that."
+      },
       "template": {
-        "set": "value"
+        "set": "`${field} ${value}`"
       }
     }
   ],
-  "id": "outer",
+  "id": "f7adb6b7-9291-43aa-9004-99f24fc097a5",
   "version": 0,
   "url": "",
   "properties": {

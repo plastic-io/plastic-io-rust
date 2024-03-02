@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::sync::Mutex;
-use crate::types::{Graph, Connector, Node};
+use crate::types::{Graph, Node};
 use crate::utils::log;
 
 type GlobalGraphs = Mutex<HashMap<String, Graph>>;
@@ -35,34 +35,51 @@ fn integrate_linked_graphs_with_fields(graph: &mut Graph, base_path: &str) {
 
 fn load_and_integrate_linked_graphs_with_fields(graph: &mut Graph, base_path: &str, global_nodes: &mut Vec<Node>) {
   for node in graph.nodes.iter_mut() {
-      if let Some(linked_graph) = node.linked_graph.take() { // Temporarily take ownership
-          // Construct the path to the linked graph
-          let path = linked_graph.url;
-          let mut loaded_graph = load_graph_from_file(&path);
-          // Update node IDs and connectors for inputs and outputs
-          for input in linked_graph.fields.inputs.values() {
-              let connector = Connector {
-                  id: input.id.clone(),
-                  node_id: input.id.to_string(),
-                  field: input.field.clone(),
-                  graph_id: graph.id.clone(),
-                  version: 0,
-              };
-              // Find the corresponding node and add this connector
-              if let Some(node) = global_nodes.iter_mut().find(|n| n.id == connector.node_id) {
-                  if let Some(edge) = node.edges.iter_mut().find(|e| e.field == connector.field) {
-                      edge.connectors.push(connector);
-                  }
+    if let Some(linked_graph) = node.linked_graph.take() { // Temporarily take ownership
+      // Construct the path to the linked graph
+      let path = linked_graph.url;
+      let mut loaded_graph = load_graph_from_file(&path);
+      // locate the nodes connecting to the host nodes inputs
+      // and change those connectors so they are connecting to
+      // the inner graph's inputs
+      for input in linked_graph.fields.inputs.values() {
+        for node in global_nodes.iter_mut() {
+          for edge in node.edges.iter_mut() {
+            for connector in edge.connectors.iter_mut() {
+              if connector.node_id == node.id {
+                log("linked_graph: input", format!("output: {}, field: {}, graph_id: {}", input.id, input.field, graph.id));
+                connector.node_id = input.id.clone();
+                connector.field = input.field.clone();
               }
+            }
           }
-          load_and_integrate_linked_graphs_with_fields(&mut loaded_graph, base_path, global_nodes);
+        }
       }
+      // locate the inner node the linked_graph is talking about and move
+      // connectors to the linked node from the host node.
+      for (output_host_field, output) in linked_graph.fields.outputs {
+        for edge in node.edges.iter_mut() {
+          if output_host_field != edge.field { return }
+          for connector in edge.connectors.iter_mut() {
+            // Find the corresponding node and add this connector
+            if let Some(inner_node) = loaded_graph.nodes.iter_mut().find(|n| n.id == output.id) {
+                if let Some(inner_edge) = inner_node.edges.iter_mut().find(|e| e.field == output.field) {
+                    log("linked_graph: output", format!("output: {}, field: {}, graph_id: {}", output.id, output.field, graph.id));
+                    // move connector to linked node
+                    inner_edge.connectors.push(connector.to_owned());
+                }
+            }
+          }
+        }
+      }
+      load_and_integrate_linked_graphs_with_fields(&mut loaded_graph, base_path, global_nodes);
+    }
   }
   global_nodes.append(&mut graph.nodes);
 }
 
 pub fn load_graph_from_file(path: &str) -> Graph {
-  log("_load_graph_from_file", format!("path: {}", path));
+  log("load_graph_from_file", format!("path: {}", path));
   let graph_string = std::fs::read_to_string(path)
       .expect("Failed to read test data file");
   let mut graph = parse_graph(&graph_string)
@@ -71,3 +88,4 @@ pub fn load_graph_from_file(path: &str) -> Graph {
   cache_set(graph.clone());
   return graph;
 }
+
