@@ -13,7 +13,5 @@ rusty_v8 = "0.32.1"
 clap = { version = "4.5.0", features = ["derive"] }
 lazy_static = "1.4.0"
 uuid = { version = "1.7.0", features = ["v4"] }
-tokio = { version = "1.36.0", features = ["sync", "time", "rt-multi-thread", "macros"] }
+tokio = { version = "1.36.0", features = ["sync", "time", "rt", "macros"] }
 libc = "0.2.153"
-
-
