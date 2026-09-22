@@ -105,8 +105,23 @@ pub fn v8_value_to_serde_json(
       // `undefined` is not directly representable in JSON;
       // you might choose to use null or some other convention
       return serde_json::Value::Null;
+  } else if value.is_object() || value.is_array() {
+      /*
+       * Objects and arrays used to arrive as null — the placeholder that made
+       * every structured value crossing an edge disappear (RT-29), and that
+       * would have made per-instance state a single `null`.  V8 can serialise
+       * them, so it does.
+       */
+      let stringified = v8::json::stringify(scope, value);
+      match stringified {
+          Some(text) => {
+              let text = text.to_rust_string_lossy(scope);
+              serde_json::from_str(&text).unwrap_or(serde_json::Value::Null)
+          }
+          None => serde_json::Value::Null,
+      }
   } else {
-      // Handle arrays, objects, or other types as needed
-      return serde_json::Value::Null; // Placeholder for simplicity
+      // a function, a symbol: nothing JSON has a place for
+      return serde_json::Value::Null;
   }
 }

@@ -33,20 +33,38 @@ fn integrate_linked_graphs_with_fields(graph: &mut Graph, base_path: &str) {
 }
 
 fn load_and_integrate_linked_graphs_with_fields(graph: &mut Graph, base_path: &str, global_nodes: &mut Vec<Node>) {
-  for node in graph.nodes.iter_mut() {
-    if let Some(linked_graph) = node.linked_graph.take() { // Temporarily take ownership
-      // Construct the path to the linked graph
-      let path = linked_graph.url;
+  /*
+   * The nodes of this level join the flat set *first*, so that rewiring can
+   * see them.  The original appended them at the end of the walk, which meant
+   * the connectors it was trying to rewire were not in the list yet and the
+   * input mapping did nothing at all at the top level.
+   */
+  let graph_id = graph.id.clone();
+  let start = global_nodes.len();
+  global_nodes.append(&mut graph.nodes);
+  let mut index = start;
+  while index < global_nodes.len() {
+    let linked_graph = global_nodes[index].linked_graph.take();
+    if let Some(linked_graph) = linked_graph {
+      let host_id = global_nodes[index].id.clone();
+      let host_edges = global_nodes[index].edges.clone();
+      let path = linked_graph.url.clone();
       let mut loaded_graph = file(&path);
-      // locate the nodes connecting to the host nodes inputs
-      // and change those connectors so they are connecting to
-      // the inner graph's inputs
-      for input in linked_graph.fields.inputs.values() {
-        for node in global_nodes.iter_mut() {
-          for edge in node.edges.iter_mut() {
+      /*
+       * A connector pointing at *this host node* is pointing at whatever the
+       * host's input names.  The inner loop used to call its own item `node`,
+       * which shadows the host: the test then asked whether a connector points
+       * at the node that owns it — a self-loop, never what was meant.  The
+       * field is matched too, so a subgraph with more than one way in is wired
+       * the way it was drawn instead of to whichever input came last.
+       */
+      let single_input = linked_graph.fields.inputs.len() == 1;
+      for (host_field, input) in linked_graph.fields.inputs.iter() {
+        for other in global_nodes.iter_mut() {
+          for edge in other.edges.iter_mut() {
             for connector in edge.connectors.iter_mut() {
-              if connector.node_id == node.id {
-                log("linked_graph: input", format!("output: {}, field: {}, graph_id: {}", input.id, input.field, graph.id));
+              if connector.node_id == host_id && (&connector.field == host_field || single_input) {
+                log("linked_graph: input", format!("node: {}, field: {}, graph_id: {}", input.id, input.field, graph_id));
                 connector.node_id = input.id.clone();
                 connector.field = input.field.clone();
               }
@@ -54,34 +72,40 @@ fn load_and_integrate_linked_graphs_with_fields(graph: &mut Graph, base_path: &s
           }
         }
       }
-      // locate the inner node the linked_graph is talking about and move
-      // connectors to the linked node from the host node.
-      for (output_host_field, output) in linked_graph.fields.outputs {
-        for edge in node.edges.iter_mut() {
-          if output_host_field != edge.field { return }
-          for connector in edge.connectors.iter_mut() {
-            // Find the corresponding node and add this connector
-            if let Some(inner_node) = loaded_graph.nodes.iter_mut().find(|n| n.id == output.id) {
-                if let Some(inner_edge) = inner_node.edges.iter_mut().find(|e| e.field == output.field) {
-                    log("linked_graph: output", format!("output: {}, field: {}, graph_id: {}", output.id, output.field, graph.id));
-                    // move connector to linked node
-                    inner_edge.connectors.push(connector.to_owned());
-                }
+      // What left the host leaves the inner node that produces it.  This used
+      // to `return` when an edge was not the one named, abandoning the whole
+      // walk and leaving every node after it unintegrated.
+      for (host_field, output) in linked_graph.fields.outputs.iter() {
+        let edge = match host_edges.iter().find(|edge| &edge.field == host_field) {
+          Some(edge) => edge,
+          None => continue,
+        };
+        if let Some(inner_node) = loaded_graph.nodes.iter_mut().find(|n| n.id == output.id) {
+          if let Some(inner_edge) = inner_node.edges.iter_mut().find(|e| e.field == output.field) {
+            log("linked_graph: output", format!("node: {}, field: {}, graph_id: {}", output.id, output.field, graph_id));
+            for connector in edge.connectors.iter() {
+              inner_edge.connectors.push(connector.clone());
             }
           }
         }
       }
       load_and_integrate_linked_graphs_with_fields(&mut loaded_graph, base_path, global_nodes);
     }
+    index += 1;
   }
-  global_nodes.append(&mut graph.nodes);
 }
 
+/*
+ * Loading no longer flattens.  A linked graph is instantiated when a value
+ * reaches it (see `instances.rs`), which is what lets two uses of one subgraph
+ * keep their own state and lets a graph contain itself at all — flattening
+ * that would never finish.  `flatten` is kept for anyone who wants the old
+ * one-set-of-nodes arrangement, and its two long-standing faults are fixed.
+ */
 pub fn json(graph_string: &str) -> Graph {
   log("json", format!("graph_string: {}", graph_string));
-  let mut graph = parse_graph(&graph_string)
+  let graph = parse_graph(&graph_string)
       .expect("Error parsing JSON into Graph");
-  integrate_linked_graphs_with_fields(&mut graph, "");
   set_graph_to_global_store(graph.clone());
   return graph;
 }
@@ -91,10 +115,17 @@ pub fn file(path: &str) -> Graph {
   log("load_graph_from_file", format!("path: {}", path));
   let graph_string = std::fs::read_to_string(path)
       .expect("Failed to read test data file");
-  let mut graph = parse_graph(&graph_string)
+  let graph = parse_graph(&graph_string)
       .expect("Error parsing JSON into Graph");
-  integrate_linked_graphs_with_fields(&mut graph, "");
   set_graph_to_global_store(graph.clone());
   return graph;
+}
+
+/// The old arrangement: every linked graph copied into the host before
+/// anything runs.  One set of nodes, shared by every use of a subgraph.
+pub fn flatten(graph: &Graph) -> Graph {
+  let mut copy = graph.clone();
+  integrate_linked_graphs_with_fields(&mut copy, "");
+  copy
 }
 

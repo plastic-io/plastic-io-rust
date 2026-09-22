@@ -1,0 +1,32 @@
+{
+ "id": "sub",
+ "url": "sub",
+ "version": 0,
+ "properties": {
+  "name": "sub",
+  "description": "a graph that contains itself",
+  "createdBy": "",
+  "createdOn": "2024-01-01T00:00:00Z",
+  "lastUpdate": "2024-01-01T00:00:00Z",
+  "exportable": false,
+  "height": 1,
+  "width": 1,
+  "icon": ""
+ },
+ "nodes": [
+  {
+   "id": "inner",
+   "edges": [],
+   "version": 0,
+   "graphId": "sub",
+   "url": "index",
+   "data": "",
+   "properties": {
+    "description": "counts the calls it has had"
+   },
+   "template": {
+    "set": "state.calls = (state.calls || 0) + 1;\n`${instance.path} called ${state.calls} with ${value}`"
+   }
+  }
+ ]
+}

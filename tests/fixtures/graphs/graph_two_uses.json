@@ -1,0 +1,125 @@
+{
+ "id": "two",
+ "url": "two",
+ "version": 0,
+ "properties": {
+  "name": "two uses",
+  "description": "a graph that contains itself",
+  "createdBy": "",
+  "createdOn": "2024-01-01T00:00:00Z",
+  "lastUpdate": "2024-01-01T00:00:00Z",
+  "exportable": false,
+  "height": 1,
+  "width": 1,
+  "icon": ""
+ },
+ "nodes": [
+  {
+   "id": "entry",
+   "edges": [
+    {
+     "field": "left",
+     "external": false,
+     "connectors": [
+      {
+       "id": "cl",
+       "nodeId": "first",
+       "field": "in",
+       "graphId": "two",
+       "version": 0
+      }
+     ]
+    },
+    {
+     "field": "right",
+     "external": false,
+     "connectors": [
+      {
+       "id": "cr",
+       "nodeId": "second",
+       "field": "in",
+       "graphId": "two",
+       "version": 0
+      }
+     ]
+    }
+   ],
+   "version": 0,
+   "graphId": "two",
+   "url": "index",
+   "data": "",
+   "properties": {
+    "description": "sends the same value into both uses"
+   },
+   "template": {
+    "set": "edges.left = value; edges.right = value;"
+   }
+  },
+  {
+   "id": "first",
+   "linkedGraph": {
+    "id": "sub",
+    "version": 0,
+    "data": {},
+    "properties": {},
+    "url": "tests/fixtures/graphs/graph_sub.json",
+    "loaded": false,
+    "fields": {
+     "inputs": {
+      "in": {
+       "id": "inner",
+       "field": "in",
+       "dataType": "string",
+       "external": true
+      }
+     },
+     "outputs": {}
+    }
+   },
+   "edges": [],
+   "version": 0,
+   "graphId": "two",
+   "url": "",
+   "data": "",
+   "properties": {
+    "description": "one use of the subgraph"
+   },
+   "template": {
+    "set": ""
+   }
+  },
+  {
+   "id": "second",
+   "linkedGraph": {
+    "id": "sub",
+    "version": 0,
+    "data": {},
+    "properties": {},
+    "url": "tests/fixtures/graphs/graph_sub.json",
+    "loaded": false,
+    "fields": {
+     "inputs": {
+      "in": {
+       "id": "inner",
+       "field": "in",
+       "dataType": "string",
+       "external": true
+      }
+     },
+     "outputs": {}
+    }
+   },
+   "edges": [],
+   "version": 0,
+   "graphId": "two",
+   "url": "",
+   "data": "",
+   "properties": {
+    "description": "one use of the subgraph"
+   },
+   "template": {
+    "set": ""
+   }
+  }
+ ]
+}

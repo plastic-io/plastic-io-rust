@@ -1,0 +1,79 @@
+{
+ "id": "rec",
+ "url": "recursion",
+ "version": 0,
+ "properties": {
+  "name": "recursion",
+  "description": "a graph that contains itself",
+  "createdBy": "",
+  "createdOn": "2024-01-01T00:00:00Z",
+  "lastUpdate": "2024-01-01T00:00:00Z",
+  "exportable": false,
+  "height": 1,
+  "width": 1,
+  "icon": ""
+ },
+ "nodes": [
+  {
+   "id": "step",
+   "edges": [
+    {
+     "field": "deeper",
+     "external": false,
+     "connectors": [
+      {
+       "id": "c1",
+       "nodeId": "self",
+       "field": "in",
+       "graphId": "rec",
+       "version": 0
+      }
+     ]
+    }
+   ],
+   "version": 0,
+   "graphId": "rec",
+   "url": "index",
+   "data": "",
+   "properties": {
+    "description": "counts down and hands the rest to itself"
+   },
+   "template": {
+    "set": "state.visits = (state.visits || 0) + 1;\nvar depth = typeof instance === 'undefined' ? 0 : Number(instance.depth);\nif (value > 0) { edges.deeper = value - 1; }\n`depth ${depth} value ${value} visits ${state.visits}`"
+   }
+  },
+  {
+   "id": "self",
+   "linkedGraph": {
+    "id": "rec",
+    "version": 0,
+    "data": {},
+    "properties": {},
+    "url": "tests/fixtures/graphs/graph_recursive.json",
+    "loaded": false,
+    "fields": {
+     "inputs": {
+      "in": {
+       "id": "step",
+       "field": "in",
+       "dataType": "number",
+       "external": true
+      }
+     },
+     "outputs": {}
+    }
+   },
+   "edges": [],
+   "version": 0,
+   "graphId": "rec",
+   "url": "",
+   "data": "",
+   "properties": {
+    "description": "this same graph, one level down"
+   },
+   "template": {
+    "set": ""
+   }
+  }
+ ]
+}

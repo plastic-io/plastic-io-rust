@@ -1,0 +1,102 @@
+{
+ "id": "fanout",
+ "url": "fanout",
+ "version": 0,
+ "properties": {
+  "name": "fanout",
+  "description": "one edge, two connectors",
+  "createdBy": "",
+  "createdOn": "2024-01-01T00:00:00Z",
+  "lastUpdate": "2024-01-01T00:00:00Z",
+  "exportable": false,
+  "height": 1,
+  "width": 1,
+  "icon": ""
+ },
+ "nodes": [
+  {
+   "id": "entry",
+   "edges": [
+    {
+     "field": "out",
+     "external": false,
+     "connectors": [
+      {
+       "id": "c-left",
+       "nodeId": "left",
+       "field": "in",
+       "graphId": "fanout",
+       "version": 0
+      },
+      {
+       "id": "c-right",
+       "nodeId": "right",
+       "field": "in",
+       "graphId": "fanout",
+       "version": 0
+      }
+     ]
+    },
+    {
+     "field": "second",
+     "external": false,
+     "connectors": [
+      {
+       "id": "c-third",
+       "nodeId": "third",
+       "field": "in",
+       "graphId": "fanout",
+       "version": 0
+      }
+     ]
+    }
+   ],
+   "version": 0,
+   "graphId": "fanout",
+   "url": "index",
+   "data": "",
+   "properties": {
+    "description": "sends the same value two ways, and another value a third"
+   },
+   "template": {
+    "set": "edges.out = value; edges.second = value + ' again';"
+   }
+  },
+  {
+   "id": "left",
+   "edges": [],
+   "version": 0,
+   "graphId": "fanout",
+   "url": "left",
+   "data": "",
+   "properties": {},
+   "template": {
+    "set": "`left got ${value}`"
+   }
+  },
+  {
+   "id": "right",
+   "edges": [],
+   "version": 0,
+   "graphId": "fanout",
+   "url": "right",
+   "data": "",
+   "properties": {},
+   "template": {
+    "set": "`right got ${value}`"
+   }
+  },
+  {
+   "id": "third",
+   "edges": [],
+   "version": 0,
+   "graphId": "fanout",
+   "url": "third",
+   "data": "",
+   "properties": {},
+   "template": {
+    "set": "`third got ${value}`"
+   }
+  }
+ ]
+}

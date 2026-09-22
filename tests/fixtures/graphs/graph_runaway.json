@@ -1,0 +1,79 @@
+{
+ "id": "runaway",
+ "url": "runaway",
+ "version": 0,
+ "properties": {
+  "name": "recursion",
+  "description": "a graph that contains itself",
+  "createdBy": "",
+  "createdOn": "2024-01-01T00:00:00Z",
+  "lastUpdate": "2024-01-01T00:00:00Z",
+  "exportable": false,
+  "height": 1,
+  "width": 1,
+  "icon": ""
+ },
+ "nodes": [
+  {
+   "id": "step",
+   "edges": [
+    {
+     "field": "deeper",
+     "external": false,
+     "connectors": [
+      {
+       "id": "c1",
+       "nodeId": "self",
+       "field": "in",
+       "graphId": "runaway",
+       "version": 0
+      }
+     ]
+    }
+   ],
+   "version": 0,
+   "graphId": "runaway",
+   "url": "index",
+   "data": "",
+   "properties": {
+    "description": "counts down and hands the rest to itself"
+   },
+   "template": {
+    "set": "edges.deeper = value + 1;"
+   }
+  },
+  {
+   "id": "self",
+   "linkedGraph": {
+    "id": "runaway",
+    "version": 0,
+    "data": {},
+    "properties": {},
+    "url": "tests/fixtures/graphs/graph_runaway.json",
+    "loaded": false,
+    "fields": {
+     "inputs": {
+      "in": {
+       "id": "step",
+       "field": "in",
+       "dataType": "number",
+       "external": true
+      }
+     },
+     "outputs": {}
+    }
+   },
+   "edges": [],
+   "version": 0,
+   "graphId": "runaway",
+   "url": "",
+   "data": "",
+   "properties": {
+    "description": "this same graph, one level down"
+   },
+   "template": {
+    "set": ""
+   }
+  }
+ ]
+}

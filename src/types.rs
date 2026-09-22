@@ -42,6 +42,8 @@ pub struct BusMessage {
     pub connector_graph_id: String,
     pub connector_node_id: String,
     pub edge_field: String,
+    /// Which use of a linked graph this value is travelling in.
+    pub instance_key: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -149,4 +151,7 @@ pub struct Scheduler {
     pub graph: Graph,
     pub id: String,
     pub event_emitter: Arc<EventEmitter>,
+    /// Which use of a linked graph this scheduler is running in, if any: the
+    /// path of host nodes it was reached through.  Empty for the root graph.
+    pub instance_key: String,
 }

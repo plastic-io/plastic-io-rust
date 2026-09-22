@@ -1,6 +1,7 @@
 mod scheduler;
 mod utils;
 mod loader;
+mod instances;
 mod types;
 mod event_emitter;
 use clap::Parser;
